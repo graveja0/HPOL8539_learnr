@@ -1,0 +1,13 @@
+name: HPOL8539-Simulation
+title: HPOL8539-Simulation
+username:
+account: graves-vanderbilt
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 6783382
+bundleId: 6253390
+url: https://graves-vanderbilt.shinyapps.io/HPOL8539-Simulation/
+when: 1661896361.86535
+lastSyncTime: 1661896361.86536
+asMultiple: FALSE
+asStatic: FALSE
