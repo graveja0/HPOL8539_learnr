@@ -64,7 +64,7 @@ plot_sampling_distribution <- function(x,truth) {
     #hrbrthemes::theme_ipsum() +
     labs(x = "Estimate", y = "Density") +
     geom_vline(aes(xintercept = truth)) +
-    annotate("text",x = mean(x), y = min(d$y*1.2), vjust=-1,label  = glue::glue("  \tMean: {formatC(mean(x),digits = 3, format='f')}\n   SD: {formatC(sd(x),digits = 3, format = 'f')}"), hjust = 0)
+    annotate("text",x = mean(x), y = min(d$y*1.2), vjust=-1,label  = glue::glue("  \tMean: {formatC(mean(x),digits = 3, format='f')}\n   SD: {formatC(sd(x),digits = 3, format = 'f')}\n   Truth: {truth}"), hjust = 0)
 }
 
 plot_cis <- function(x, K, truth) {
@@ -99,9 +99,9 @@ options("scipen" = 100, "digits" = 5)
 ```
 
 
-## Motivation 
+## Review and Motivation for Today's Session
 
-Our objective today is to extend our consideration of a data generation process (DGP) with unobserved heterogeneity.
+Our objective today is to extend our consideration of a data generation process (DGP) with unobserved heterogeneity. 
 
 Recall the basic DGP we introduced last week:
 
@@ -112,7 +112,45 @@ where $i$ indexes indiviudal units, $\mathbf{X}_i$ is a vector of unit-level att
 
 Recall that with this DGP defined, we defined a full set of parameters as the "ground" truth, and then simulated $M=1,000$ separate datasets, each time running a linear regression model. We extracted the $\hat \tau$ estimate from each regression, and then plotted their distribution. 
 
-These parameter values, as well as the plotted sampling distribution, are shown below. 
+Our basic process is shown below:
+
+```{r}
+#| eval: false
+#| echo: true
+
+params  # List of parameters governing the DGP.
+generate_data_from_DGP = function(params) # Y_i = beta_0 + beta_1 X_i + tau D_i + epsilon_i 
+estimate  = function(data) # lm(Y ~ X_i + D_i)
+discriminate = function(estimates) # pull out tau_hat 
+  
+# Run the full four-step process once. 
+define_parameters %>%  # 1. Define the parameters and DGP.
+  generate_data_from_DGP() %>%  # 2. Generate data based on the DGP
+    estimate() %>%  # 3. Estimate based on the generated data
+      discriminate()  # 4. Extract out  and  report what you need. 
+
+# Now do it 1,000 times. 
+do_it_all_at_once <- function(params) {
+  generate_data_from_DGP() %>%  
+      estimate() %>% 
+        discriminate() 
+}
+M = 1000
+1:M %>% map(~(do_it_all_at_once(params)))
+```
+
+This differs from the usual research/evaluation process only in that we control the "truth." In practice, when we have an actual "real-life" dataset, we would perform the following process:
+
+```{r}
+#| eval: false
+#| echo: true
+#| 
+read_in_and_structure_data() %>%  # 1. Read in our data
+    estimate() %>%  # 2. Estimate the model on the data
+      discriminate()  # 3. Extract out and report what you need. 
+```
+
+Turning back to our exercises from last week, the parameter values from our defined DGP, as well as the plotted sampling distribution, are shown below. 
 
 ```{r}
 #| echo: false
@@ -237,25 +275,6 @@ We will next adapt the underlying DGP to include an unobserved heterogeneity ter
 $$
 Y_i = \mathbf{X}_i'\beta + \tau D_i + U_i +\epsilon_i \quad \quad \quad Eq. 2
 $$
-Recall the basic four-step process we will go through:
-
-```{r}
-#| echo: true
-#| eval: false
-
-params %>% 
-  generate_data() %>% 
-    estimate() %>% 
-      discriminate()
-
-do_it_all <- function(params) {
-  params %>% 
-    generate_data() %>% 
-      estimate() %>% 
-        discriminate()
-}
-
-```
 
 
 ```{r ovb1}
@@ -342,12 +361,12 @@ generate_estimate_discriminate <- function(params) {
 
 ```
 
-Our next step is to repeat this process lots of times via a Monte Carlo simulation. We'll keep the number of Monte Carlo runs small (1000) to speed up computation, but note that in practice we may need to do this thousands of times. 
+Our next step is to repeat this process lots of times via a Monte Carlo simulation. We'll keep the number of Monte Carlo runs small (100) to speed up computation, but note that in practice we may need to do this thousands of times. 
 
 ```{r mc_ovb, exercise.setup = "ovb1"}
 #| echo: true
 #| exercise: true
-#| exercise.lines: 15
+#| exercise.lines: 7
 
 
 # Monte Carlo simulation based on 100 different realizations of the DGP:
@@ -366,7 +385,7 @@ As you read about for today, analyzing panel data opens up new ways to estimate 
 Our basic pivot is to move from a cross-sectional setting into a panel setting. In terms of the data generation process, that often means we will observe each unit ($i$) in our data at different points in time ($t$).^[Note, that for the following examples, $i$ will represent individual units and $t$ will represent a time dimension. However, panel data could take any number of forms, such as students ($i$) within classrooms or schools ($t$), patients ($i$) treated at the same hospital ($t$). We can also think of panel data at some higher level of aggregation than our unit of observation (e.g., individuals $i$ within states $g$ over time $t$.)
 ]
 
-Let's also suppose that when we move to the panel data setting, we are at risk of an additional (time-related) dimension of unobserved heterogeneity in our outcomes. 
+Let's also suppose that when we move to the panel data setting, we are at risk of an additional (time-related) dimension of unobserved heterogeneity in our outcomes. This may be due to idiosyncratic time-period "shocks" that are unrelated to the treatment. 
 
 Our DGP thus becomes:
 
@@ -379,25 +398,31 @@ Also note that our unobserved heterogeneity term is now defined as  $\color{red}
 
 ### Partitioning the DGP Into Systematic and Stochastic Components
 
-Before we move on it is useful also to highlight two components of our underlying DGP: a **systematic** component and a **stochastic** component.^[A nice source on this topic can be found [here](https://gking.harvard.edu/files/making.pdf)] The stochastic component is given by
+Before we move on it is useful also to highlight two components of our underlying DGP: a **systematic** component and a **stochastic** component.^[A nice source on this topic can be found [here](https://gking.harvard.edu/files/making.pdf)] Under a DGP without unobserved heterogeneity (we'll add that in a bit), the stochastic component is given by
 
 $$
 \begin{equation}
-Y_i \sim f(\color{blue}{\theta},\color{orange}{\epsilon_i})
+Y_{it} \sim f(\color{blue}{\theta},\color{orange}{\epsilon_{it}})
 \end{equation}
 $$
 
 and the systematic component is given by:
 
 $$
-\color{blue}{\theta} = g(\color{blue}{\beta , \tau, X_i,D_i})
+\color{blue}{\theta} = g(\color{blue}{\beta , \tau, X_{it},D_{it}})
 $$
 
 The above equations are generalized to accommodate any number of outcome types (e.g., continuous, binary, categorical). Cast in terms of a linear model, as we have specified above, we have
 
 $$
-Y_i \sim N(\color{blue}{\mu},\color{orange}{\sigma_{\epsilon}^2}), \quad \mu = g(\color{blue}{\beta , \tau, X_i,D_i}) = \color{blue}{\mathbf{X_i}'\beta + \tau D_i }
+Y_{it} \sim N(\color{blue}{\mu},\color{orange}{\sigma_{\epsilon}^2}), \quad \mu = g(\color{blue}{\beta , \tau, X_{it},D_{it}}) = \color{blue}{\mathbf{X_{it}}'\beta + \tau D_{it} }
 $$
+Which we can also write as
+
+$$
+Y_i = \color{blue}{\mathbf{X_i}'\beta + \tau D_i } + \color{orange}{\epsilon_{it}}
+$$
+where $\color{orange}{\epsilon_{it}} \sim N(0,\color{orange}{\sigma^2_{\epsilon}})$. 
 
 Note that in the above equations, the systematic component is specified in $\color{blue}{\text{blue}}$ and the stochastic component in $\color{orange}{\text{orange}}$. 
 
@@ -406,7 +431,7 @@ Intuitively, the systematic component tells us about the level of of the outcome
 We'll now turn back to the case with unobserved heterogeneity, which is shown in $\color{red}{\text{red}}$
 
 $$
-Y_{it} = \mathbf{X}_{it}'\beta + \tau D_{it} + \color{red}{U} + \epsilon_{it}
+Y_{it} = \color{blue}{\mathbf{X}_{it}'\beta} + \color{blue}{\tau D_{it}} + \color{red}{U} + \color{orange}{\epsilon_{it}}
 $$
 
 As we will see below, how we deal with unobserved heterogeneity will hinge on whether we absorb $\color{red}{U}$ within the  $\color{blue}{\text{systematic}}$ or $\color{orange}{\text{stochastic}}$ component of the DGP. 
@@ -469,7 +494,7 @@ Consistent with the DGP, notice in the output that each individual unit is obser
 
 ## Exercise 3: Pooled OLS
 
-We will first consider the case where we simply fit an ordinary least squares (OLS) regression to our (simulated) panel data. Essentially, we allow the unobserved heterogeneity terms to stay in the eror term:
+We will first consider the case where we simply fit an ordinary least squares (OLS) regression to our (simulated) panel data. Essentially, we allow the unobserved heterogeneity terms to stay in the error term:
 
 $$
 \begin{aligned}
@@ -710,14 +735,16 @@ plot_sampling_distribution(result_re$tau_hat, truth = params_panel$tau)
 
 As you can see in the sampling distribution, we end up with a distribution of estimates far from the truth. 
 
-Why is this?  Recall, again, that a random effects model places assumptions on correlations between the random effects and the included regressors (i.e., $X_{it}$ and $D_{it}$. We specifically *assume* that the random effects **are not correlated** with either $X_{it}$ or $D_{it}$. But in our data generation function, we define the probability of treatment as a function of $u_i$. Specifically, it is defined as `pr_treated = inv_logit(delta_i)`. In addition to determining the probability of treatment, the unobserved heterogeneity terms also enter the DGP for the outcome $Y_{it}$:
+Why is this?  Recall, again, that a random effects model places assumptions on correlations between the random effects and the included regressors (i.e., $X_{it}$ and $D_{it}$). We specifically *assume* that the random effects **are not correlated** with either $X_{it}$ or $D_{it}$. 
+
+But in our data generation function, we define the probability of treatment as a function of $u_i$. Specifically, it is defined as `pr_treated = inv_logit(delta_i)`. In addition to determining the probability of treatment, the unobserved heterogeneity terms also enter the DGP for the outcome $Y_{it}$:
 
 $$
 Y_{it} = \mathbf{X}_{it}'\beta + \tau D_{it} + \delta_i + \gamma_t + \epsilon_{it}
 $$
 
 
-We therefore have a situation in our DGP where the random effects, while *assumed* to be uncorrelated with the regressors (esp. $D_i$), actually is correlated with them. So the assumptions of random effects regression are not met for our DGP. 
+We therefore have a situation in our DGP where the random effects, while *assumed* to be uncorrelated with the regressors (esp. $D_i$), actually are correlated with them. **So the assumptions of random effects regression are not met for the specified DGP in this example.**
 
 All is not lost for random effects, however. We'll come back to random effects estimation later to recover ourselves when we fit a **correlated random effects regression.** But we'll first turn our attention to **fixed effects** regression from an econometric perspective. 
 
@@ -905,15 +932,13 @@ An important takeaway from a first-differences approach is that we net out all u
 
 By only comparing units to themselves (over time), the first differences estimator focuses estimation *exclusivily* on variation that occurs *within* units; by transoforming the data, we literally threw out all the variation in our data that occurs *across* units but which, *within* those units, does not vary over time. Because these attributes are "fixed" across other dimensions of our panel (i.e., time) this is how we can appreciate the use of the term "fixed effects" as it is widely taught in econometrics. 
 
-This notion of "within" vs. "between" variation is very important for understanding fixed and random effects regression approaches to estimation using panel data. In short, fixed effect estimators make exclusive use within variation, whereas (as is covered in a blog post on the topic) the random effects approach draws on *both* within and between variation. The degree to which random effects draws on within vs. between variation depends on the underlying data correlation patterns, however. 
+This notion of "within" vs. "between" variation is very important for understanding fixed and random effects regression approaches to estimation using panel data. In short, fixed effect estimators make exclusive use within variation, whereas ([as is covered in a blog post on the topic](https://graveja0.github.io/HPOL8539-F2022/blog/posts/quasi-demeaning.html)) the random effects approach draws on *both* within and between variation. The degree to which random effects draws on within vs. between variation depends on the underlying data correlation patterns, however. 
 
-The bottom line is that when you hear "fixed effect" from a social science perspective, what we are talking about is a regression approach that leverages *only* within variation. Because we are ignoring an entire dimension of variability in our data, we aren't using as much of the information in our data to estimate parameters--and for this reason, fixed effect approaches are less "efficient" (i.e., the sampling distributions are thicker) than random effect approaches. 
+The bottom line is that when you hear "fixed effect" from a social science perspective, what we are talking about is a regression approach that leverages *only* within variation. Because we are ignoring an entire dimension of variability in our data (i.e., variation across units), we aren't using as much of the information in our data to estimate parameters--and for this reason, fixed effect approaches are less "efficient" (i.e., the sampling distributions are thicker) than random effect approaches. 
 
 ## Exercise 7: Demeaning
 
-A more generalized approach to fixed effects uses a technique called "de-meaning." The idea is simple: for each cross-sectional unit in our data (i.e., `unit_id`) we obtain the mean for the outcome and any regressors across time. We then subtract this mean from each individual. 
-
-Again, because our unobserved heterogeneity term is fixed across time, the "mean" of $\delta_i$ is $\delta_i$. Therefore, when we demean our data, $\delta_i$ drops out of the equation!
+A more generalized approach to fixed effects uses a technique called "de-meaning." The idea is simple: for each cross-sectional unit in our data (i.e., `unit_id`) we obtain the mean (averaged across time periods) for the outcome and any regressors in our model. We then subtract this mean from each individual. 
 
 $$
 \begin{align}
@@ -921,6 +946,10 @@ $$
 &= (\mathbf{X}_{it}-\bar{\mathbf{X}_i})'\beta + \tau (D_{it}-\bar{D_i})  + (\epsilon_{it} - \bar{\epsilon_i}) \quad \quad \quad Eq. 6
 \end{align}
 $$
+
+
+Again, because our unobserved heterogeneity term is fixed across time, the "mean" of $\delta_i$ is $\delta_i$. Therefore, when we demean our data, $\delta_i$ drops out of the equation! By the same token, we also lose any time-invariant attributes of the underlying units, i.e., $X_i$. 
+
 
 ### Demeaning with Time and Unit Fixed Effects
 
@@ -1110,7 +1139,10 @@ Let's now assume
 $$
 \delta_i = \mathbf{\bar{X_i}}'\eta + \lambda \bar{D_i} + \omega_i
 $$
-which, borrowing the notation from the Panel Data section above, is equivalent to 
+
+where $\mathbf{\bar{X_i}}$ is the average of each unit's values of $\mathbf{X_{it}}$ across time periods $t$. 
+
+Borrowing the notation from the Panel Data section above, this approach is equivalent to 
 
 $$
 \begin{align}
@@ -1129,16 +1161,17 @@ v_{it} &= \omega_i + \epsilon_{it} \\
 \omega_i &\sim N(0,\sigma^2_i)
 \end{align}
 $$
-So what type of regression to we run for this? A simple summary follows: 
+Essentially, what we're doing here is allowing the unit-level means $\mathbf{\bar{X_i}}$ and $\bar{D_i}$ to capture any correlation between $\mathbf{X_i}$ and $D_i$ and the random effect $\delta_i$. We thus include these unit-level means as additional RHS variables in the estimator to account for this correlation, and otherwise fit the same random effects regression as before.
+
+A simple summary of the correlated random effects regression follows: 
 
 1. We include all time-varying $\mathbf{X_{it}}$. 
 2. We include the time-varying treatment indicator $D_{it}$. 
-3. We include the each units average for every $X_{it}$, i.e., $(1/T)\sum_{t=1}^TX_{it}$ for a balanced panel)
+3. We include the each unit's average for every $X_{it}$, i.e., $(1/T)\sum_{t=1}^TX_{it}$ for a balanced panel.
 4. We include each unit's average $D_i$. 
 5. We include a random effect for $\omega_i$.
 
 Steps 1 and 2 we did before for random effects. Steps 3 and 4 are new, but are easy to add!
-
 
 ## Correlated Random Effects: R Code
 
@@ -1173,7 +1206,7 @@ params_panel %>%
 
 ```
 
-Let's verify this gives us an *identical* coefficient estimate for $\hat \tau$: 
+Let's verify this gives us an *identical* coefficient estimate for $\hat \tau$ as the fixed effect regression based on `feglm()`: 
 
 ```{r cre2, exercise.setup="cre1"}
 #| echo: true
@@ -1230,4 +1263,18 @@ plot_sampling_distribution(result_cre$tau_hat, truth = params_panel$tau)
 
 
 ```
+
+## Next Steps: Extending Difference-in-Differences
+
+We now have our "toolkit" of panel data estimators:
+
+1. Pooled OLS
+2. Random Effects (including Correlated Random Effects)
+3. Fixed effects
+
+If you have been paying attention to the "DIDpocalypse" that has occured within the social sciences over the last few years, you'll know that there are problems with fitting a two-way fixed effect estimator, as we did here, to difference-in-difference settings with staggered treatment rollout and/or treatment effect heterogeneity across treated units. 
+
+It turns out that we can draw on this "toolbox" of approaches to obtain difference-in-difference (DID) estimtates **even in the presence of treatment effect heterogeneity and staggered treatment adoption**. We just have to be careful and deliberate about how we do so. We'll cover how to do this next week. Our approach will also set us up to consider nonlinear models (e.g., for binary or count outcomes) the following week. 
+
+
 

@@ -109,8 +109,9 @@ if (window.hljs) {
 
 <article class="topics" id="learnr-tutorial-content">
 
-<div id="section-motivation" class="section level2">
-<h2>Motivation</h2>
+<div id="section-review-and-motivation-for-todays-session"
+class="section level2">
+<h2>Review and Motivation for Today’s Session</h2>
 <p>Our objective today is to extend our consideration of a data
 generation process (DGP) with unobserved heterogeneity.</p>
 <p>Recall the basic DGP we introduced last week:</p>
@@ -128,8 +129,35 @@ class="math inline">\(M=1,000\)</span> separate datasets, each time
 running a linear regression model. We extracted the <span
 class="math inline">\(\hat \tau\)</span> estimate from each regression,
 and then plotted their distribution.</p>
-<p>These parameter values, as well as the plotted sampling distribution,
-are shown below.</p>
+<p>Our basic process is shown below:</p>
+<pre class="r"><code>params  # List of parameters governing the DGP.
+generate_data_from_DGP = function(params) # Y_i = beta_0 + beta_1 X_i + tau D_i + epsilon_i 
+estimate  = function(data) # lm(Y ~ X_i + D_i)
+discriminate = function(estimates) # pull out tau_hat 
+  
+# Run the full four-step process once. 
+define_parameters %&gt;%  # 1. Define the parameters and DGP.
+  generate_data_from_DGP() %&gt;%  # 2. Generate data based on the DGP
+    estimate() %&gt;%  # 3. Estimate based on the generated data
+      discriminate()  # 4. Extract out  and  report what you need. 
+
+# Now do it 1,000 times. 
+do_it_all_at_once &lt;- function(params) {
+  generate_data_from_DGP() %&gt;%  
+      estimate() %&gt;% 
+        discriminate() 
+}
+M = 1000
+1:M %&gt;% map(~(do_it_all_at_once(params)))</code></pre>
+<p>This differs from the usual research/evaluation process only in that
+we control the “truth.” In practice, when we have an actual “real-life”
+dataset, we would perform the following process:</p>
+<pre class="r"><code>read_in_and_structure_data() %&gt;%  # 1. Read in our data
+    estimate() %&gt;%  # 2. Estimate the model on the data
+      discriminate()  # 3. Extract out and report what you need. </code></pre>
+<p>Turning back to our exercises from last week, the parameter values
+from our defined DGP, as well as the plotted sampling distribution, are
+shown below.</p>
 <table>
 <caption>Parameter Values (Eq. 1)</caption>
 <thead>
@@ -182,18 +210,7 @@ heterogeneity term <span class="math inline">\(U_i\)</span>:</p>
 <p><span class="math display">\[
 Y_i = \mathbf{X}_i&#39;\beta + \tau D_i + U_i +\epsilon_i \quad \quad
 \quad Eq. 2
-\]</span> Recall the basic four-step process we will go through:</p>
-<pre class="r"><code>params %&gt;% 
-  generate_data() %&gt;% 
-    estimate() %&gt;% 
-      discriminate()
-
-do_it_all &lt;- function(params) {
-  params %&gt;% 
-    generate_data() %&gt;% 
-      estimate() %&gt;% 
-        discriminate()
-}</code></pre>
+\]</span></p>
 <div class="tutorial-exercise" data-label="ovb1" data-completion="1"
 data-diagnostics="1" data-startover="1" data-lines="60">
 <pre class="text"><code>##################################
@@ -274,11 +291,11 @@ generate_estimate_discriminate &lt;- function(params) {
 <script type="application/json" data-ui-opts="1">{"engine":"r","has_checker":false,"caption":"<span data-i18n=\"text.enginecap\" data-i18n-opts=\"{&quot;engine&quot;:&quot;R&quot;}\">R Code<\/span>"}</script>
 </div>
 <p>Our next step is to repeat this process lots of times via a Monte
-Carlo simulation. We’ll keep the number of Monte Carlo runs small (1000)
+Carlo simulation. We’ll keep the number of Monte Carlo runs small (100)
 to speed up computation, but note that in practice we may need to do
 this thousands of times.</p>
 <div class="tutorial-exercise" data-label="mc_ovb" data-completion="1"
-data-diagnostics="1" data-startover="1" data-lines="15">
+data-diagnostics="1" data-startover="1" data-lines="7">
 <pre class="text"><code># Monte Carlo simulation based on 100 different realizations of the DGP:
 M = 100
 result_lm &lt;- 1:M %&gt;% map_df(~generate_estimate_discriminate(params))
@@ -304,7 +321,8 @@ class="math inline">\(t\)</span>).<a href="#section-fn1"
 class="footnote-ref" id="section-fnref1"><sup>1</sup></a></p>
 <p>Let’s also suppose that when we move to the panel data setting, we
 are at risk of an additional (time-related) dimension of unobserved
-heterogeneity in our outcomes.</p>
+heterogeneity in our outcomes. This may be due to idiosyncratic
+time-period “shocks” that are unrelated to the treatment.</p>
 <p>Our DGP thus becomes:</p>
 <p><span class="math display">\[
 Y_{it} = \mathbf{X}_{it}&#39;\beta + \tau D_{it} + \color{red}{U} +
@@ -326,25 +344,32 @@ class="section level3">
 <p>Before we move on it is useful also to highlight two components of
 our underlying DGP: a <strong>systematic</strong> component and a
 <strong>stochastic</strong> component.<a href="#section-fn2"
-class="footnote-ref" id="section-fnref2"><sup>2</sup></a> The stochastic
-component is given by</p>
+class="footnote-ref" id="section-fnref2"><sup>2</sup></a> Under a DGP
+without unobserved heterogeneity (we’ll add that in a bit), the
+stochastic component is given by</p>
 <p><span class="math display">\[
 \begin{equation}
-Y_i \sim f(\color{blue}{\theta},\color{orange}{\epsilon_i})
+Y_{it} \sim f(\color{blue}{\theta},\color{orange}{\epsilon_{it}})
 \end{equation}
 \]</span></p>
 <p>and the systematic component is given by:</p>
 <p><span class="math display">\[
-\color{blue}{\theta} = g(\color{blue}{\beta , \tau, X_i,D_i})
+\color{blue}{\theta} = g(\color{blue}{\beta , \tau, X_{it},D_{it}})
 \]</span></p>
 <p>The above equations are generalized to accommodate any number of
 outcome types (e.g., continuous, binary, categorical). Cast in terms of
 a linear model, as we have specified above, we have</p>
 <p><span class="math display">\[
-Y_i \sim N(\color{blue}{\mu},\color{orange}{\sigma_{\epsilon}^2}), \quad
-\mu = g(\color{blue}{\beta , \tau, X_i,D_i}) =
-\color{blue}{\mathbf{X_i}&#39;\beta + \tau D_i }
-\]</span></p>
+Y_{it} \sim N(\color{blue}{\mu},\color{orange}{\sigma_{\epsilon}^2}),
+\quad \mu = g(\color{blue}{\beta , \tau, X_{it},D_{it}}) =
+\color{blue}{\mathbf{X_{it}}&#39;\beta + \tau D_{it} }
+\]</span> Which we can also write as</p>
+<p><span class="math display">\[
+Y_i = \color{blue}{\mathbf{X_i}&#39;\beta + \tau D_i } +
+\color{orange}{\epsilon_{it}}
+\]</span> where <span
+class="math inline">\(\color{orange}{\epsilon_{it}} \sim
+N(0,\color{orange}{\sigma^2_{\epsilon}})\)</span>.</p>
 <p>Note that in the above equations, the systematic component is
 specified in <span
 class="math inline">\(\color{blue}{\text{blue}}\)</span> and the
@@ -361,8 +386,8 @@ class="math inline">\(\sigma_{\epsilon}^2\)</span>.</p>
 is shown in <span
 class="math inline">\(\color{red}{\text{red}}\)</span></p>
 <p><span class="math display">\[
-Y_{it} = \mathbf{X}_{it}&#39;\beta + \tau D_{it} + \color{red}{U} +
-\epsilon_{it}
+Y_{it} = \color{blue}{\mathbf{X}_{it}&#39;\beta} + \color{blue}{\tau
+D_{it}} + \color{red}{U} + \color{orange}{\epsilon_{it}}
 \]</span></p>
 <p>As we will see below, how we deal with unobserved heterogeneity will
 hinge on whether we absorb <span
@@ -456,7 +481,7 @@ unit is observed twice.</p>
 <h2>Exercise 3: Pooled OLS</h2>
 <p>We will first consider the case where we simply fit an ordinary least
 squares (OLS) regression to our (simulated) panel data. Essentially, we
-allow the unobserved heterogeneity terms to stay in the eror term:</p>
+allow the unobserved heterogeneity terms to stay in the error term:</p>
 <p><span class="math display">\[
 \begin{aligned}
 Y_{it} &amp;=\color{blue}{\mathbf{X}_{it}&#39;\beta + \tau D_{it}} +
@@ -739,12 +764,13 @@ distribution of estimates far from the truth.</p>
 <p>Why is this? Recall, again, that a random effects model places
 assumptions on correlations between the random effects and the included
 regressors (i.e., <span class="math inline">\(X_{it}\)</span> and <span
-class="math inline">\(D_{it}\)</span>. We specifically <em>assume</em>
+class="math inline">\(D_{it}\)</span>). We specifically <em>assume</em>
 that the random effects <strong>are not correlated</strong> with either
 <span class="math inline">\(X_{it}\)</span> or <span
-class="math inline">\(D_{it}\)</span>. But in our data generation
-function, we define the probability of treatment as a function of <span
-class="math inline">\(u_i\)</span>. Specifically, it is defined as
+class="math inline">\(D_{it}\)</span>.</p>
+<p>But in our data generation function, we define the probability of
+treatment as a function of <span class="math inline">\(u_i\)</span>.
+Specifically, it is defined as
 <code>pr_treated = inv_logit(delta_i)</code>. In addition to determining
 the probability of treatment, the unobserved heterogeneity terms also
 enter the DGP for the outcome <span
@@ -755,9 +781,9 @@ Y_{it} = \mathbf{X}_{it}&#39;\beta + \tau D_{it} + \delta_i + \gamma_t +
 \]</span></p>
 <p>We therefore have a situation in our DGP where the random effects,
 while <em>assumed</em> to be uncorrelated with the regressors
-(esp. <span class="math inline">\(D_i\)</span>), actually is correlated
-with them. So the assumptions of random effects regression are not met
-for our DGP.</p>
+(esp. <span class="math inline">\(D_i\)</span>), actually are correlated
+with them. <strong>So the assumptions of random effects regression are
+not met for the specified DGP in this example.</strong></p>
 <p>All is not lost for random effects, however. We’ll come back to
 random effects estimation later to recover ourselves when we fit a
 <strong>correlated random effects regression.</strong> But we’ll first
@@ -1006,31 +1032,28 @@ econometrics.</p>
 <p>This notion of “within” vs. “between” variation is very important for
 understanding fixed and random effects regression approaches to
 estimation using panel data. In short, fixed effect estimators make
-exclusive use within variation, whereas (as is covered in a blog post on
-the topic) the random effects approach draws on <em>both</em> within and
-between variation. The degree to which random effects draws on within
-vs. between variation depends on the underlying data correlation
-patterns, however.</p>
+exclusive use within variation, whereas (<a
+href="https://graveja0.github.io/HPOL8539-F2022/blog/posts/quasi-demeaning.html">as
+is covered in a blog post on the topic</a>) the random effects approach
+draws on <em>both</em> within and between variation. The degree to which
+random effects draws on within vs. between variation depends on the
+underlying data correlation patterns, however.</p>
 <p>The bottom line is that when you hear “fixed effect” from a social
 science perspective, what we are talking about is a regression approach
 that leverages <em>only</em> within variation. Because we are ignoring
-an entire dimension of variability in our data, we aren’t using as much
-of the information in our data to estimate parameters–and for this
-reason, fixed effect approaches are less “efficient” (i.e., the sampling
-distributions are thicker) than random effect approaches.</p>
+an entire dimension of variability in our data (i.e., variation across
+units), we aren’t using as much of the information in our data to
+estimate parameters–and for this reason, fixed effect approaches are
+less “efficient” (i.e., the sampling distributions are thicker) than
+random effect approaches.</p>
 </div>
 <div id="section-exercise-7-demeaning" class="section level2">
 <h2>Exercise 7: Demeaning</h2>
 <p>A more generalized approach to fixed effects uses a technique called
 “de-meaning.” The idea is simple: for each cross-sectional unit in our
-data (i.e., <code>unit_id</code>) we obtain the mean for the outcome and
-any regressors across time. We then subtract this mean from each
-individual.</p>
-<p>Again, because our unobserved heterogeneity term is fixed across
-time, the “mean” of <span class="math inline">\(\delta_i\)</span> is
-<span class="math inline">\(\delta_i\)</span>. Therefore, when we demean
-our data, <span class="math inline">\(\delta_i\)</span> drops out of the
-equation!</p>
+data (i.e., <code>unit_id</code>) we obtain the mean (averaged across
+time periods) for the outcome and any regressors in our model. We then
+subtract this mean from each individual.</p>
 <p><span class="math display">\[
 \begin{align}
 (Y_{it}-\bar{Y_i}) &amp;= (\mathbf{X}_{it}-\bar{\mathbf{X}_i})&#39;\beta
@@ -1041,6 +1064,13 @@ equation!</p>
 \quad Eq. 6
 \end{align}
 \]</span></p>
+<p>Again, because our unobserved heterogeneity term is fixed across
+time, the “mean” of <span class="math inline">\(\delta_i\)</span> is
+<span class="math inline">\(\delta_i\)</span>. Therefore, when we demean
+our data, <span class="math inline">\(\delta_i\)</span> drops out of the
+equation! By the same token, we also lose any time-invariant attributes
+of the underlying units, i.e., <span
+class="math inline">\(X_i\)</span>.</p>
 <div id="section-demeaning-with-time-and-unit-fixed-effects"
 class="section level3">
 <h3>Demeaning with Time and Unit Fixed Effects</h3>
@@ -1295,8 +1325,13 @@ Y_{it} = \mathbf{X}_{it}&#39;\beta + \tau D_{it} + \delta_i+
 \]</span> Let’s now assume</p>
 <p><span class="math display">\[
 \delta_i = \mathbf{\bar{X_i}}&#39;\eta + \lambda \bar{D_i} + \omega_i
-\]</span> which, borrowing the notation from the Panel Data section
-above, is equivalent to</p>
+\]</span></p>
+<p>where <span class="math inline">\(\mathbf{\bar{X_i}}\)</span> is the
+average of each unit’s values of <span
+class="math inline">\(\mathbf{X_{it}}\)</span> across time periods <span
+class="math inline">\(t\)</span>.</p>
+<p>Borrowing the notation from the Panel Data section above, this
+approach is equivalent to</p>
 <p><span class="math display">\[
 \begin{align}
 \delta_i  &amp;\sim N(\rho,\sigma^2_i) \\
@@ -1316,17 +1351,26 @@ Y_{it} &amp;= \mathbf{X}_{it}&#39;\beta + \tau D_{it} +
 v_{it} &amp;= \omega_i + \epsilon_{it} \\
 \omega_i &amp;\sim N(0,\sigma^2_i)
 \end{align}
-\]</span> So what type of regression to we run for this? A simple
-summary follows:</p>
+\]</span> Essentially, what we’re doing here is allowing the unit-level
+means <span class="math inline">\(\mathbf{\bar{X_i}}\)</span> and <span
+class="math inline">\(\bar{D_i}\)</span> to capture any correlation
+between <span class="math inline">\(\mathbf{X_i}\)</span> and <span
+class="math inline">\(D_i\)</span> and the random effect <span
+class="math inline">\(\delta_i\)</span>. We thus include these
+unit-level means as additional RHS variables in the estimator to account
+for this correlation, and otherwise fit the same random effects
+regression as before.</p>
+<p>A simple summary of the correlated random effects regression
+follows:</p>
 <ol style="list-style-type: decimal">
 <li>We include all time-varying <span
 class="math inline">\(\mathbf{X_{it}}\)</span>.</li>
 <li>We include the time-varying treatment indicator <span
 class="math inline">\(D_{it}\)</span>.</li>
-<li>We include the each units average for every <span
+<li>We include the each unit’s average for every <span
 class="math inline">\(X_{it}\)</span>, i.e., <span
 class="math inline">\((1/T)\sum_{t=1}^TX_{it}\)</span> for a balanced
-panel)</li>
+panel.</li>
 <li>We include each unit’s average <span
 class="math inline">\(D_i\)</span>.</li>
 <li>We include a random effect for <span
@@ -1376,7 +1420,8 @@ params_panel %&gt;%
 <script type="application/json" data-ui-opts="1">{"engine":"r","has_checker":false,"caption":"<span data-i18n=\"text.enginecap\" data-i18n-opts=\"{&quot;engine&quot;:&quot;R&quot;}\">R Code<\/span>"}</script>
 </div>
 <p>Let’s verify this gives us an <em>identical</em> coefficient estimate
-for <span class="math inline">\(\hat \tau\)</span>:</p>
+for <span class="math inline">\(\hat \tau\)</span> as the fixed effect
+regression based on <code>feglm()</code>:</p>
 <div class="tutorial-exercise" data-label="cre2" data-completion="1"
 data-diagnostics="1" data-startover="1" data-lines="13">
 <pre class="text"><code>estimator_fn_fe &lt;- function(df) {
@@ -1423,6 +1468,29 @@ result_cre &lt;- 1:M %&gt;% map_df(~generate_estimate_discriminate_cre(params_pa
 plot_sampling_distribution(result_cre$tau_hat, truth = params_panel$tau)</code></pre>
 <script type="application/json" data-ui-opts="1">{"engine":"r","has_checker":false,"caption":"<span data-i18n=\"text.enginecap\" data-i18n-opts=\"{&quot;engine&quot;:&quot;R&quot;}\">R Code<\/span>"}</script>
 </div>
+</div>
+<div id="section-next-steps-extending-difference-in-differences"
+class="section level2">
+<h2>Next Steps: Extending Difference-in-Differences</h2>
+<p>We now have our “toolkit” of panel data estimators:</p>
+<ol style="list-style-type: decimal">
+<li>Pooled OLS</li>
+<li>Random Effects (including Correlated Random Effects)</li>
+<li>Fixed effects</li>
+</ol>
+<p>If you have been paying attention to the “DIDpocalypse” that has
+occured within the social sciences over the last few years, you’ll know
+that there are problems with fitting a two-way fixed effect estimator,
+as we did here, to difference-in-difference settings with staggered
+treatment rollout and/or treatment effect heterogeneity across treated
+units.</p>
+<p>It turns out that we can draw on this “toolbox” of approaches to
+obtain difference-in-difference (DID) estimtates <strong>even in the
+presence of treatment effect heterogeneity and staggered treatment
+adoption</strong>. We just have to be careful and deliberate about how
+we do so. We’ll cover how to do this next week. Our approach will also
+set us up to consider nonlinear models (e.g., for binary or count
+outcomes) the following week.</p>
 <p>
 <script type="application/shiny-prerendered" data-context="server-start">
 library(learnr)
@@ -1476,7 +1544,7 @@ plot_sampling_distribution <- function(x,truth) {
     #hrbrthemes::theme_ipsum() +
     labs(x = "Estimate", y = "Density") +
     geom_vline(aes(xintercept = truth)) +
-    annotate("text",x = mean(x), y = min(d$y*1.2), vjust=-1,label  = glue::glue("  \tMean: {formatC(mean(x),digits = 3, format='f')}\n   SD: {formatC(sd(x),digits = 3, format = 'f')}"), hjust = 0)
+    annotate("text",x = mean(x), y = min(d$y*1.2), vjust=-1,label  = glue::glue("  \tMean: {formatC(mean(x),digits = 3, format='f')}\n   SD: {formatC(sd(x),digits = 3, format = 'f')}\n   Truth: {truth}"), hjust = 0)
 }
 
 plot_cis <- function(x, K, truth) {
@@ -1507,7 +1575,7 @@ plot_cis <- function(x, K, truth) {
 
 options("scipen" = 100, "digits" = 5)
 
-
+#knitr::purl(here("Panel Data Methods I/Panel Data Methods I.Rmd"))
 </script>
  
 <script type="application/shiny-prerendered" data-context="server">
@@ -1557,7 +1625,7 @@ learnr:::store_exercise_cache(structure(list(label = "ovb1", global_setup = stru
 "  d <- density(x)", "  p_df <- as_tibble(cbind(x = d$x, density = d$y))", 
 "  p_df %>%", "    ggplot(aes(x = x, y = density)) + geom_line() +", 
 "    #hrbrthemes::theme_ipsum() +", "    labs(x = \"Estimate\", y = \"Density\") +", 
-"    geom_vline(aes(xintercept = truth)) +", "    annotate(\"text\",x = mean(x), y = min(d$y*1.2), vjust=-1,label  = glue::glue(\"  \\tMean: {formatC(mean(x),digits = 3, format='f')}\\n   SD: {formatC(sd(x),digits = 3, format = 'f')}\"), hjust = 0)", 
+"    geom_vline(aes(xintercept = truth)) +", "    annotate(\"text\",x = mean(x), y = min(d$y*1.2), vjust=-1,label  = glue::glue(\"  \\tMean: {formatC(mean(x),digits = 3, format='f')}\\n   SD: {formatC(sd(x),digits = 3, format = 'f')}\\n   Truth: {truth}\"), hjust = 0)", 
 "}", "", "plot_cis <- function(x, K, truth) {", "  res <- x %>% bind_rows(.id = \"m\") %>%", 
 "    as_tibble() %>%", "    mutate(m = factor(m)) %>%", "    mutate(m = fct_reorder(m,estimate, .desc = TRUE)) %>%", 
 "    mutate(truth = truth) %>%", "    rowwise() %>%", "    mutate(covered = as.integer(between(truth,conf.low,conf.high))) %>%", 
@@ -1568,9 +1636,9 @@ learnr:::store_exercise_cache(structure(list(label = "ovb1", global_setup = stru
 "    geom_vline(aes(xintercept = truth)) +", "    labs(title= glue(\"Confidence Intervals for {prettyNum(length(K),big.mark=',')} of {prettyNum(length(res$m),big.mark=',')} Estimates\"),", 
 "         y= \"Sampling Iteration\",x = \"Estimate\",", "         subtitle= glue(\"{formatC(100*mean(res$covered),digits = 1, format='f')}% of confidence intervals cover the truth\")) +", 
 "    scale_colour_manual(values = c(\"black\",\"red\")) +", "    theme(legend.position = \"none\")", 
-"}", "", "options(\"scipen\" = 100, \"digits\" = 5)", "", ""), chunk_opts = list(
-    label = "setup", include = FALSE)), setup = NULL, chunks = list(
-    list(label = "ovb1", code = "##################################\n# Step 1: Parameterize the Problem\n##################################\nparams =list(\n  N = 1000,\n  mean_x_i = 2,\n  sd_x_i = 0.5,\n  beta = 1,\n  tau = 0.5,\n  sigma_sq_epsilon = 1\n)\n\n####################################################\n# Step 2: Define a Data Generation Process Function\n#####################################################\ndgp_df_u =function(params) {\n  with(params,{\n    df =\n      tibble(\n        # Covariate\n        x_i = rnorm(N, mean_x_i, sd_x_i),\n        # ADD UNOBSERVED HETEROGENEITY TERM\n        u_i = rnorm(N, mean = 0, sd = 1)) %>% \n        # Induce correlation between u_i and treatment;\n        # higher values of u_i make it more likely you're treated. \n        rowwise() %>% # This allows us to get each value's pr_treated in the line below. \n        mutate(pr_treated = boot::inv.logit(u_i)) %>% \n        ungroup() %>%  # This undoes the rowwise \n        # Treatment indicator\n        mutate(d_i = rbinom(N, size = 1, prob = pr_treated)) %>% \n        mutate(epsilon_i = rnorm(N, mean = 0, sd = sigma_sq_epsilon)) %>% \n        # u_i is also in the DGP for y_i \n        mutate(y_i = beta * x_i + tau * d_i + u_i + epsilon_i) %>% \n        # because u_i is unobserved, we strip it from the \"observed\" data output. \n        select(-u_i)\n    return(df)\n  })\n}\n\n############################################\n# 3. Define and Apply an Estimation Function\n#############################################\nestimator_fn = function(df) {\n  out =\n    df %>% \n      lm(y_i ~ x_i + d_i, data = .)\n  return(out)\n}\n\n########################################\n# 4. Define the discriminator function \n# (For this exercise we want to extract tau-hat \n# i.e., the coefficient on treated)\n########################################\ndisc_fn = function(fit) {\n  fit_ =broom::tidy(fit)   # This cleans up the fitted regression object\n  out =fit_ %>% \n    filter(term==\"d_i\") %>% \n    pull(estimate)\n  \n  return(out)\n}\n\n###############################################\n# 5. Define a compound function that executes\n# steps 1-4 based on the parameter inputs. \n###############################################\n\ngenerate_estimate_discriminate <- function(params) {\n  params %>% # Step 1: Parameterize the problem\n      dgp_df_u() %>%  # Step 2: Define the data generation process\n        estimator_fn() %>%  # Step 3: Estimate \n          disc_fn() %>% # Step 4: Pull out what you need\n            data.frame(tau_hat = .) # store the result as a data frame object\n}\n\n", 
+"}", "", "options(\"scipen\" = 100, \"digits\" = 5)", "", "#knitr::purl(here(\"Panel Data Methods I/Panel Data Methods I.Rmd\"))"
+), chunk_opts = list(label = "setup", include = FALSE)), setup = NULL, 
+    chunks = list(list(label = "ovb1", code = "##################################\n# Step 1: Parameterize the Problem\n##################################\nparams =list(\n  N = 1000,\n  mean_x_i = 2,\n  sd_x_i = 0.5,\n  beta = 1,\n  tau = 0.5,\n  sigma_sq_epsilon = 1\n)\n\n####################################################\n# Step 2: Define a Data Generation Process Function\n#####################################################\ndgp_df_u =function(params) {\n  with(params,{\n    df =\n      tibble(\n        # Covariate\n        x_i = rnorm(N, mean_x_i, sd_x_i),\n        # ADD UNOBSERVED HETEROGENEITY TERM\n        u_i = rnorm(N, mean = 0, sd = 1)) %>% \n        # Induce correlation between u_i and treatment;\n        # higher values of u_i make it more likely you're treated. \n        rowwise() %>% # This allows us to get each value's pr_treated in the line below. \n        mutate(pr_treated = boot::inv.logit(u_i)) %>% \n        ungroup() %>%  # This undoes the rowwise \n        # Treatment indicator\n        mutate(d_i = rbinom(N, size = 1, prob = pr_treated)) %>% \n        mutate(epsilon_i = rnorm(N, mean = 0, sd = sigma_sq_epsilon)) %>% \n        # u_i is also in the DGP for y_i \n        mutate(y_i = beta * x_i + tau * d_i + u_i + epsilon_i) %>% \n        # because u_i is unobserved, we strip it from the \"observed\" data output. \n        select(-u_i)\n    return(df)\n  })\n}\n\n############################################\n# 3. Define and Apply an Estimation Function\n#############################################\nestimator_fn = function(df) {\n  out =\n    df %>% \n      lm(y_i ~ x_i + d_i, data = .)\n  return(out)\n}\n\n########################################\n# 4. Define the discriminator function \n# (For this exercise we want to extract tau-hat \n# i.e., the coefficient on treated)\n########################################\ndisc_fn = function(fit) {\n  fit_ =broom::tidy(fit)   # This cleans up the fitted regression object\n  out =fit_ %>% \n    filter(term==\"d_i\") %>% \n    pull(estimate)\n  \n  return(out)\n}\n\n###############################################\n# 5. Define a compound function that executes\n# steps 1-4 based on the parameter inputs. \n###############################################\n\ngenerate_estimate_discriminate <- function(params) {\n  params %>% # Step 1: Parameterize the problem\n      dgp_df_u() %>%  # Step 2: Define the data generation process\n        estimator_fn() %>%  # Step 3: Estimate \n          disc_fn() %>% # Step 4: Pull out what you need\n            data.frame(tau_hat = .) # store the result as a data frame object\n}\n\n", 
         opts = list(label = "\"ovb1\"", echo = "TRUE", exercise = "TRUE", 
             exercise.lines = "60L"), engine = "r")), code_check = NULL, 
     error_check = NULL, check = NULL, solution = NULL, tests = NULL, 
@@ -1660,7 +1728,7 @@ learnr:::store_exercise_cache(structure(list(label = "mc_ovb", global_setup = st
 "  d <- density(x)", "  p_df <- as_tibble(cbind(x = d$x, density = d$y))", 
 "  p_df %>%", "    ggplot(aes(x = x, y = density)) + geom_line() +", 
 "    #hrbrthemes::theme_ipsum() +", "    labs(x = \"Estimate\", y = \"Density\") +", 
-"    geom_vline(aes(xintercept = truth)) +", "    annotate(\"text\",x = mean(x), y = min(d$y*1.2), vjust=-1,label  = glue::glue(\"  \\tMean: {formatC(mean(x),digits = 3, format='f')}\\n   SD: {formatC(sd(x),digits = 3, format = 'f')}\"), hjust = 0)", 
+"    geom_vline(aes(xintercept = truth)) +", "    annotate(\"text\",x = mean(x), y = min(d$y*1.2), vjust=-1,label  = glue::glue(\"  \\tMean: {formatC(mean(x),digits = 3, format='f')}\\n   SD: {formatC(sd(x),digits = 3, format = 'f')}\\n   Truth: {truth}\"), hjust = 0)", 
 "}", "", "plot_cis <- function(x, K, truth) {", "  res <- x %>% bind_rows(.id = \"m\") %>%", 
 "    as_tibble() %>%", "    mutate(m = factor(m)) %>%", "    mutate(m = fct_reorder(m,estimate, .desc = TRUE)) %>%", 
 "    mutate(truth = truth) %>%", "    rowwise() %>%", "    mutate(covered = as.integer(between(truth,conf.low,conf.high))) %>%", 
@@ -1671,14 +1739,14 @@ learnr:::store_exercise_cache(structure(list(label = "mc_ovb", global_setup = st
 "    geom_vline(aes(xintercept = truth)) +", "    labs(title= glue(\"Confidence Intervals for {prettyNum(length(K),big.mark=',')} of {prettyNum(length(res$m),big.mark=',')} Estimates\"),", 
 "         y= \"Sampling Iteration\",x = \"Estimate\",", "         subtitle= glue(\"{formatC(100*mean(res$covered),digits = 1, format='f')}% of confidence intervals cover the truth\")) +", 
 "    scale_colour_manual(values = c(\"black\",\"red\")) +", "    theme(legend.position = \"none\")", 
-"}", "", "options(\"scipen\" = 100, \"digits\" = 5)", "", ""), chunk_opts = list(
-    label = "setup", include = FALSE)), setup = "##################################\n# Step 1: Parameterize the Problem\n##################################\nparams =list(\n  N = 1000,\n  mean_x_i = 2,\n  sd_x_i = 0.5,\n  beta = 1,\n  tau = 0.5,\n  sigma_sq_epsilon = 1\n)\n\n####################################################\n# Step 2: Define a Data Generation Process Function\n#####################################################\ndgp_df_u =function(params) {\n  with(params,{\n    df =\n      tibble(\n        # Covariate\n        x_i = rnorm(N, mean_x_i, sd_x_i),\n        # ADD UNOBSERVED HETEROGENEITY TERM\n        u_i = rnorm(N, mean = 0, sd = 1)) %>% \n        # Induce correlation between u_i and treatment;\n        # higher values of u_i make it more likely you're treated. \n        rowwise() %>% # This allows us to get each value's pr_treated in the line below. \n        mutate(pr_treated = boot::inv.logit(u_i)) %>% \n        ungroup() %>%  # This undoes the rowwise \n        # Treatment indicator\n        mutate(d_i = rbinom(N, size = 1, prob = pr_treated)) %>% \n        mutate(epsilon_i = rnorm(N, mean = 0, sd = sigma_sq_epsilon)) %>% \n        # u_i is also in the DGP for y_i \n        mutate(y_i = beta * x_i + tau * d_i + u_i + epsilon_i) %>% \n        # because u_i is unobserved, we strip it from the \"observed\" data output. \n        select(-u_i)\n    return(df)\n  })\n}\n\n############################################\n# 3. Define and Apply an Estimation Function\n#############################################\nestimator_fn = function(df) {\n  out =\n    df %>% \n      lm(y_i ~ x_i + d_i, data = .)\n  return(out)\n}\n\n########################################\n# 4. Define the discriminator function \n# (For this exercise we want to extract tau-hat \n# i.e., the coefficient on treated)\n########################################\ndisc_fn = function(fit) {\n  fit_ =broom::tidy(fit)   # This cleans up the fitted regression object\n  out =fit_ %>% \n    filter(term==\"d_i\") %>% \n    pull(estimate)\n  \n  return(out)\n}\n\n###############################################\n# 5. Define a compound function that executes\n# steps 1-4 based on the parameter inputs. \n###############################################\n\ngenerate_estimate_discriminate <- function(params) {\n  params %>% # Step 1: Parameterize the problem\n      dgp_df_u() %>%  # Step 2: Define the data generation process\n        estimator_fn() %>%  # Step 3: Estimate \n          disc_fn() %>% # Step 4: Pull out what you need\n            data.frame(tau_hat = .) # store the result as a data frame object\n}\n\n", 
+"}", "", "options(\"scipen\" = 100, \"digits\" = 5)", "", "#knitr::purl(here(\"Panel Data Methods I/Panel Data Methods I.Rmd\"))"
+), chunk_opts = list(label = "setup", include = FALSE)), setup = "##################################\n# Step 1: Parameterize the Problem\n##################################\nparams =list(\n  N = 1000,\n  mean_x_i = 2,\n  sd_x_i = 0.5,\n  beta = 1,\n  tau = 0.5,\n  sigma_sq_epsilon = 1\n)\n\n####################################################\n# Step 2: Define a Data Generation Process Function\n#####################################################\ndgp_df_u =function(params) {\n  with(params,{\n    df =\n      tibble(\n        # Covariate\n        x_i = rnorm(N, mean_x_i, sd_x_i),\n        # ADD UNOBSERVED HETEROGENEITY TERM\n        u_i = rnorm(N, mean = 0, sd = 1)) %>% \n        # Induce correlation between u_i and treatment;\n        # higher values of u_i make it more likely you're treated. \n        rowwise() %>% # This allows us to get each value's pr_treated in the line below. \n        mutate(pr_treated = boot::inv.logit(u_i)) %>% \n        ungroup() %>%  # This undoes the rowwise \n        # Treatment indicator\n        mutate(d_i = rbinom(N, size = 1, prob = pr_treated)) %>% \n        mutate(epsilon_i = rnorm(N, mean = 0, sd = sigma_sq_epsilon)) %>% \n        # u_i is also in the DGP for y_i \n        mutate(y_i = beta * x_i + tau * d_i + u_i + epsilon_i) %>% \n        # because u_i is unobserved, we strip it from the \"observed\" data output. \n        select(-u_i)\n    return(df)\n  })\n}\n\n############################################\n# 3. Define and Apply an Estimation Function\n#############################################\nestimator_fn = function(df) {\n  out =\n    df %>% \n      lm(y_i ~ x_i + d_i, data = .)\n  return(out)\n}\n\n########################################\n# 4. Define the discriminator function \n# (For this exercise we want to extract tau-hat \n# i.e., the coefficient on treated)\n########################################\ndisc_fn = function(fit) {\n  fit_ =broom::tidy(fit)   # This cleans up the fitted regression object\n  out =fit_ %>% \n    filter(term==\"d_i\") %>% \n    pull(estimate)\n  \n  return(out)\n}\n\n###############################################\n# 5. Define a compound function that executes\n# steps 1-4 based on the parameter inputs. \n###############################################\n\ngenerate_estimate_discriminate <- function(params) {\n  params %>% # Step 1: Parameterize the problem\n      dgp_df_u() %>%  # Step 2: Define the data generation process\n        estimator_fn() %>%  # Step 3: Estimate \n          disc_fn() %>% # Step 4: Pull out what you need\n            data.frame(tau_hat = .) # store the result as a data frame object\n}\n\n", 
     chunks = list(list(label = "ovb1", code = "##################################\n# Step 1: Parameterize the Problem\n##################################\nparams =list(\n  N = 1000,\n  mean_x_i = 2,\n  sd_x_i = 0.5,\n  beta = 1,\n  tau = 0.5,\n  sigma_sq_epsilon = 1\n)\n\n####################################################\n# Step 2: Define a Data Generation Process Function\n#####################################################\ndgp_df_u =function(params) {\n  with(params,{\n    df =\n      tibble(\n        # Covariate\n        x_i = rnorm(N, mean_x_i, sd_x_i),\n        # ADD UNOBSERVED HETEROGENEITY TERM\n        u_i = rnorm(N, mean = 0, sd = 1)) %>% \n        # Induce correlation between u_i and treatment;\n        # higher values of u_i make it more likely you're treated. \n        rowwise() %>% # This allows us to get each value's pr_treated in the line below. \n        mutate(pr_treated = boot::inv.logit(u_i)) %>% \n        ungroup() %>%  # This undoes the rowwise \n        # Treatment indicator\n        mutate(d_i = rbinom(N, size = 1, prob = pr_treated)) %>% \n        mutate(epsilon_i = rnorm(N, mean = 0, sd = sigma_sq_epsilon)) %>% \n        # u_i is also in the DGP for y_i \n        mutate(y_i = beta * x_i + tau * d_i + u_i + epsilon_i) %>% \n        # because u_i is unobserved, we strip it from the \"observed\" data output. \n        select(-u_i)\n    return(df)\n  })\n}\n\n############################################\n# 3. Define and Apply an Estimation Function\n#############################################\nestimator_fn = function(df) {\n  out =\n    df %>% \n      lm(y_i ~ x_i + d_i, data = .)\n  return(out)\n}\n\n########################################\n# 4. Define the discriminator function \n# (For this exercise we want to extract tau-hat \n# i.e., the coefficient on treated)\n########################################\ndisc_fn = function(fit) {\n  fit_ =broom::tidy(fit)   # This cleans up the fitted regression object\n  out =fit_ %>% \n    filter(term==\"d_i\") %>% \n    pull(estimate)\n  \n  return(out)\n}\n\n###############################################\n# 5. Define a compound function that executes\n# steps 1-4 based on the parameter inputs. \n###############################################\n\ngenerate_estimate_discriminate <- function(params) {\n  params %>% # Step 1: Parameterize the problem\n      dgp_df_u() %>%  # Step 2: Define the data generation process\n        estimator_fn() %>%  # Step 3: Estimate \n          disc_fn() %>% # Step 4: Pull out what you need\n            data.frame(tau_hat = .) # store the result as a data frame object\n}\n\n", 
         opts = list(label = "\"ovb1\"", echo = "TRUE", exercise = "TRUE", 
             exercise.lines = "60L"), engine = "r"), list(label = "mc_ovb", 
         code = "\n# Monte Carlo simulation based on 100 different realizations of the DGP:\nM = 100\nresult_lm <- 1:M %>% map_df(~generate_estimate_discriminate(params))\n\nplot_sampling_distribution(result_lm$tau_hat, truth = params$tau)", 
         opts = list(label = "\"mc_ovb\"", exercise.setup = "\"ovb1\"", 
-            echo = "TRUE", exercise = "TRUE", exercise.lines = "15L"), 
+            echo = "TRUE", exercise = "TRUE", exercise.lines = "7L"), 
         engine = "r")), code_check = NULL, error_check = NULL, 
     check = NULL, solution = NULL, tests = NULL, options = list(
         eval = FALSE, echo = TRUE, results = "markup", tidy = FALSE, 
@@ -1699,7 +1767,7 @@ learnr:::store_exercise_cache(structure(list(label = "mc_ovb", global_setup = st
         max.print = 1000, exercise.timelimit = 60, exercise.checker = "function (label = NULL, solution_code = NULL, user_code = NULL, \n    check_code = NULL, envir_result = NULL, evaluate_result = NULL, \n    envir_prep = NULL, last_value = NULL, stage = NULL, ...) \n{\n    (utils::getFromNamespace(\"check_exercise\", \"gradethis\"))(label = label, \n        solution_code = solution_code, user_code = user_code, \n        check_code = check_code, envir_result = envir_result, \n        evaluate_result = evaluate_result, envir_prep = envir_prep, \n        last_value = last_value, stage = stage, ...)\n}", 
         exercise.error.check.code = "gradethis_error_checker()", 
         label = "mc_ovb", exercise.setup = "ovb1", exercise = TRUE, 
-        exercise.lines = 15L, code = c("", "# Monte Carlo simulation based on 100 different realizations of the DGP:", 
+        exercise.lines = 7L, code = c("", "# Monte Carlo simulation based on 100 different realizations of the DGP:", 
         "M = 100", "result_lm <- 1:M %>% map_df(~generate_estimate_discriminate(params))", 
         "", "plot_sampling_distribution(result_lm$tau_hat, truth = params$tau)"
         ), out.width.px = 624, out.height.px = 384, params.src = "mc_ovb, exercise.setup = \"ovb1\"", 
@@ -1734,7 +1802,7 @@ learnr:::store_exercise_cache(structure(list(label = "dgp_panel_setup", global_s
 "  d <- density(x)", "  p_df <- as_tibble(cbind(x = d$x, density = d$y))", 
 "  p_df %>%", "    ggplot(aes(x = x, y = density)) + geom_line() +", 
 "    #hrbrthemes::theme_ipsum() +", "    labs(x = \"Estimate\", y = \"Density\") +", 
-"    geom_vline(aes(xintercept = truth)) +", "    annotate(\"text\",x = mean(x), y = min(d$y*1.2), vjust=-1,label  = glue::glue(\"  \\tMean: {formatC(mean(x),digits = 3, format='f')}\\n   SD: {formatC(sd(x),digits = 3, format = 'f')}\"), hjust = 0)", 
+"    geom_vline(aes(xintercept = truth)) +", "    annotate(\"text\",x = mean(x), y = min(d$y*1.2), vjust=-1,label  = glue::glue(\"  \\tMean: {formatC(mean(x),digits = 3, format='f')}\\n   SD: {formatC(sd(x),digits = 3, format = 'f')}\\n   Truth: {truth}\"), hjust = 0)", 
 "}", "", "plot_cis <- function(x, K, truth) {", "  res <- x %>% bind_rows(.id = \"m\") %>%", 
 "    as_tibble() %>%", "    mutate(m = factor(m)) %>%", "    mutate(m = fct_reorder(m,estimate, .desc = TRUE)) %>%", 
 "    mutate(truth = truth) %>%", "    rowwise() %>%", "    mutate(covered = as.integer(between(truth,conf.low,conf.high))) %>%", 
@@ -1745,9 +1813,9 @@ learnr:::store_exercise_cache(structure(list(label = "dgp_panel_setup", global_s
 "    geom_vline(aes(xintercept = truth)) +", "    labs(title= glue(\"Confidence Intervals for {prettyNum(length(K),big.mark=',')} of {prettyNum(length(res$m),big.mark=',')} Estimates\"),", 
 "         y= \"Sampling Iteration\",x = \"Estimate\",", "         subtitle= glue(\"{formatC(100*mean(res$covered),digits = 1, format='f')}% of confidence intervals cover the truth\")) +", 
 "    scale_colour_manual(values = c(\"black\",\"red\")) +", "    theme(legend.position = \"none\")", 
-"}", "", "options(\"scipen\" = 100, \"digits\" = 5)", "", ""), chunk_opts = list(
-    label = "setup", include = FALSE)), setup = NULL, chunks = list(
-    list(label = "dgp_panel_setup", code = "params_panel <- list(\n  N = 1000,\n  T = 2,\n  tx_time = 2, \n  rho_t = 0.8,\n  beta_0 = 0.5,\n  beta_1 = 2,\n  tau = 0.5,\n  p_d = 0.5\n)\n\ndgp_panel <- function(params) {\n  with(params, {\n\n    # Time effects\n    t_ <-\n      data.frame(t = 1:T,\n                 gamma_t = arima.sim(n=T, list(ar = rho_t, order=c(1,0,0))) %>% as.vector())\n\n    # Individual measures and effects\n    i_ <-\n      data.frame(\n        unit_id = 1:N,\n        x_i = rnorm(N, mean = 0, sd = 1),\n        u_i = rnorm(N, mean = 0, sd = 1)) %>%\n      rowwise() %>% # This allows us to get each value's pr_treated in the line below. \n      mutate(pr_treated = boot::inv.logit(u_i)) %>% \n      ungroup() %>%  # This undoes the rowwise \n      # Treatment indicator\n      mutate(d_i = rbinom(N, size = 1, prob = pr_treated)) %>% \n      ungroup()\n\n    crossing(unit_id = i_$unit_id,t = t_$t) %>%\n      left_join(i_,\"unit_id\") %>%\n      left_join(t_,\"t\") %>%\n      mutate(d_i = ifelse(t<tx_time,0,d_i)) %>%\n      mutate(y_i = beta_0 + beta_1 * x_i + tau * d_i + u_i + gamma_t + rnorm(N, mean = 0, sd = 1))\n  })\n}\n\nparams_panel %>% \n  dgp_panel()\n", 
+"}", "", "options(\"scipen\" = 100, \"digits\" = 5)", "", "#knitr::purl(here(\"Panel Data Methods I/Panel Data Methods I.Rmd\"))"
+), chunk_opts = list(label = "setup", include = FALSE)), setup = NULL, 
+    chunks = list(list(label = "dgp_panel_setup", code = "params_panel <- list(\n  N = 1000,\n  T = 2,\n  tx_time = 2, \n  rho_t = 0.8,\n  beta_0 = 0.5,\n  beta_1 = 2,\n  tau = 0.5,\n  p_d = 0.5\n)\n\ndgp_panel <- function(params) {\n  with(params, {\n\n    # Time effects\n    t_ <-\n      data.frame(t = 1:T,\n                 gamma_t = arima.sim(n=T, list(ar = rho_t, order=c(1,0,0))) %>% as.vector())\n\n    # Individual measures and effects\n    i_ <-\n      data.frame(\n        unit_id = 1:N,\n        x_i = rnorm(N, mean = 0, sd = 1),\n        u_i = rnorm(N, mean = 0, sd = 1)) %>%\n      rowwise() %>% # This allows us to get each value's pr_treated in the line below. \n      mutate(pr_treated = boot::inv.logit(u_i)) %>% \n      ungroup() %>%  # This undoes the rowwise \n      # Treatment indicator\n      mutate(d_i = rbinom(N, size = 1, prob = pr_treated)) %>% \n      ungroup()\n\n    crossing(unit_id = i_$unit_id,t = t_$t) %>%\n      left_join(i_,\"unit_id\") %>%\n      left_join(t_,\"t\") %>%\n      mutate(d_i = ifelse(t<tx_time,0,d_i)) %>%\n      mutate(y_i = beta_0 + beta_1 * x_i + tau * d_i + u_i + gamma_t + rnorm(N, mean = 0, sd = 1))\n  })\n}\n\nparams_panel %>% \n  dgp_panel()\n", 
         opts = list(label = "\"dgp_panel_setup\"", echo = "TRUE", 
             exercise = "TRUE", exercise.lines = "45L"), engine = "r")), 
     code_check = NULL, error_check = NULL, check = NULL, solution = NULL, 
@@ -1818,7 +1886,7 @@ learnr:::store_exercise_cache(structure(list(label = "pooledOLS1", global_setup 
 "  d <- density(x)", "  p_df <- as_tibble(cbind(x = d$x, density = d$y))", 
 "  p_df %>%", "    ggplot(aes(x = x, y = density)) + geom_line() +", 
 "    #hrbrthemes::theme_ipsum() +", "    labs(x = \"Estimate\", y = \"Density\") +", 
-"    geom_vline(aes(xintercept = truth)) +", "    annotate(\"text\",x = mean(x), y = min(d$y*1.2), vjust=-1,label  = glue::glue(\"  \\tMean: {formatC(mean(x),digits = 3, format='f')}\\n   SD: {formatC(sd(x),digits = 3, format = 'f')}\"), hjust = 0)", 
+"    geom_vline(aes(xintercept = truth)) +", "    annotate(\"text\",x = mean(x), y = min(d$y*1.2), vjust=-1,label  = glue::glue(\"  \\tMean: {formatC(mean(x),digits = 3, format='f')}\\n   SD: {formatC(sd(x),digits = 3, format = 'f')}\\n   Truth: {truth}\"), hjust = 0)", 
 "}", "", "plot_cis <- function(x, K, truth) {", "  res <- x %>% bind_rows(.id = \"m\") %>%", 
 "    as_tibble() %>%", "    mutate(m = factor(m)) %>%", "    mutate(m = fct_reorder(m,estimate, .desc = TRUE)) %>%", 
 "    mutate(truth = truth) %>%", "    rowwise() %>%", "    mutate(covered = as.integer(between(truth,conf.low,conf.high))) %>%", 
@@ -1829,8 +1897,8 @@ learnr:::store_exercise_cache(structure(list(label = "pooledOLS1", global_setup 
 "    geom_vline(aes(xintercept = truth)) +", "    labs(title= glue(\"Confidence Intervals for {prettyNum(length(K),big.mark=',')} of {prettyNum(length(res$m),big.mark=',')} Estimates\"),", 
 "         y= \"Sampling Iteration\",x = \"Estimate\",", "         subtitle= glue(\"{formatC(100*mean(res$covered),digits = 1, format='f')}% of confidence intervals cover the truth\")) +", 
 "    scale_colour_manual(values = c(\"black\",\"red\")) +", "    theme(legend.position = \"none\")", 
-"}", "", "options(\"scipen\" = 100, \"digits\" = 5)", "", ""), chunk_opts = list(
-    label = "setup", include = FALSE)), setup = "params_panel <- list(\n  N = 1000,\n  T = 2,\n  tx_time = 2, \n  rho_t = 0.8,\n  beta_0 = 0.5,\n  beta_1 = 2,\n  tau = 0.5,\n  p_d = 0.5\n)\n\ndgp_panel <- function(params) {\n  with(params, {\n\n    # Time effects\n    t_ <-\n      data.frame(t = 1:T,\n                 gamma_t = arima.sim(n=T, list(ar = rho_t, order=c(1,0,0))) %>% as.vector())\n\n    # Individual measures and effects\n    i_ <-\n      data.frame(\n        unit_id = 1:N,\n        x_i = rnorm(N, mean = 0, sd = 1),\n        u_i = rnorm(N, mean = 0, sd = 1)) %>%\n      rowwise() %>% # This allows us to get each value's pr_treated in the line below. \n      mutate(pr_treated = boot::inv.logit(u_i)) %>% \n      ungroup() %>%  # This undoes the rowwise \n      # Treatment indicator\n      mutate(d_i = rbinom(N, size = 1, prob = pr_treated)) %>% \n      ungroup()\n\n    crossing(unit_id = i_$unit_id,t = t_$t) %>%\n      left_join(i_,\"unit_id\") %>%\n      left_join(t_,\"t\") %>%\n      mutate(d_i = ifelse(t<tx_time,0,d_i)) %>%\n      mutate(y_i = beta_0 + beta_1 * x_i + tau * d_i + u_i + gamma_t + rnorm(N, mean = 0, sd = 1))\n  })\n}\n\nparams_panel %>% \n  dgp_panel()\n", 
+"}", "", "options(\"scipen\" = 100, \"digits\" = 5)", "", "#knitr::purl(here(\"Panel Data Methods I/Panel Data Methods I.Rmd\"))"
+), chunk_opts = list(label = "setup", include = FALSE)), setup = "params_panel <- list(\n  N = 1000,\n  T = 2,\n  tx_time = 2, \n  rho_t = 0.8,\n  beta_0 = 0.5,\n  beta_1 = 2,\n  tau = 0.5,\n  p_d = 0.5\n)\n\ndgp_panel <- function(params) {\n  with(params, {\n\n    # Time effects\n    t_ <-\n      data.frame(t = 1:T,\n                 gamma_t = arima.sim(n=T, list(ar = rho_t, order=c(1,0,0))) %>% as.vector())\n\n    # Individual measures and effects\n    i_ <-\n      data.frame(\n        unit_id = 1:N,\n        x_i = rnorm(N, mean = 0, sd = 1),\n        u_i = rnorm(N, mean = 0, sd = 1)) %>%\n      rowwise() %>% # This allows us to get each value's pr_treated in the line below. \n      mutate(pr_treated = boot::inv.logit(u_i)) %>% \n      ungroup() %>%  # This undoes the rowwise \n      # Treatment indicator\n      mutate(d_i = rbinom(N, size = 1, prob = pr_treated)) %>% \n      ungroup()\n\n    crossing(unit_id = i_$unit_id,t = t_$t) %>%\n      left_join(i_,\"unit_id\") %>%\n      left_join(t_,\"t\") %>%\n      mutate(d_i = ifelse(t<tx_time,0,d_i)) %>%\n      mutate(y_i = beta_0 + beta_1 * x_i + tau * d_i + u_i + gamma_t + rnorm(N, mean = 0, sd = 1))\n  })\n}\n\nparams_panel %>% \n  dgp_panel()\n", 
     chunks = list(list(label = "dgp_panel_setup", code = "params_panel <- list(\n  N = 1000,\n  T = 2,\n  tx_time = 2, \n  rho_t = 0.8,\n  beta_0 = 0.5,\n  beta_1 = 2,\n  tau = 0.5,\n  p_d = 0.5\n)\n\ndgp_panel <- function(params) {\n  with(params, {\n\n    # Time effects\n    t_ <-\n      data.frame(t = 1:T,\n                 gamma_t = arima.sim(n=T, list(ar = rho_t, order=c(1,0,0))) %>% as.vector())\n\n    # Individual measures and effects\n    i_ <-\n      data.frame(\n        unit_id = 1:N,\n        x_i = rnorm(N, mean = 0, sd = 1),\n        u_i = rnorm(N, mean = 0, sd = 1)) %>%\n      rowwise() %>% # This allows us to get each value's pr_treated in the line below. \n      mutate(pr_treated = boot::inv.logit(u_i)) %>% \n      ungroup() %>%  # This undoes the rowwise \n      # Treatment indicator\n      mutate(d_i = rbinom(N, size = 1, prob = pr_treated)) %>% \n      ungroup()\n\n    crossing(unit_id = i_$unit_id,t = t_$t) %>%\n      left_join(i_,\"unit_id\") %>%\n      left_join(t_,\"t\") %>%\n      mutate(d_i = ifelse(t<tx_time,0,d_i)) %>%\n      mutate(y_i = beta_0 + beta_1 * x_i + tau * d_i + u_i + gamma_t + rnorm(N, mean = 0, sd = 1))\n  })\n}\n\nparams_panel %>% \n  dgp_panel()\n", 
         opts = list(label = "\"dgp_panel_setup\"", echo = "TRUE", 
             exercise = "TRUE", exercise.lines = "45L"), engine = "r"), 
@@ -1893,7 +1961,7 @@ learnr:::store_exercise_cache(structure(list(label = "pooledOLS2", global_setup 
 "  d <- density(x)", "  p_df <- as_tibble(cbind(x = d$x, density = d$y))", 
 "  p_df %>%", "    ggplot(aes(x = x, y = density)) + geom_line() +", 
 "    #hrbrthemes::theme_ipsum() +", "    labs(x = \"Estimate\", y = \"Density\") +", 
-"    geom_vline(aes(xintercept = truth)) +", "    annotate(\"text\",x = mean(x), y = min(d$y*1.2), vjust=-1,label  = glue::glue(\"  \\tMean: {formatC(mean(x),digits = 3, format='f')}\\n   SD: {formatC(sd(x),digits = 3, format = 'f')}\"), hjust = 0)", 
+"    geom_vline(aes(xintercept = truth)) +", "    annotate(\"text\",x = mean(x), y = min(d$y*1.2), vjust=-1,label  = glue::glue(\"  \\tMean: {formatC(mean(x),digits = 3, format='f')}\\n   SD: {formatC(sd(x),digits = 3, format = 'f')}\\n   Truth: {truth}\"), hjust = 0)", 
 "}", "", "plot_cis <- function(x, K, truth) {", "  res <- x %>% bind_rows(.id = \"m\") %>%", 
 "    as_tibble() %>%", "    mutate(m = factor(m)) %>%", "    mutate(m = fct_reorder(m,estimate, .desc = TRUE)) %>%", 
 "    mutate(truth = truth) %>%", "    rowwise() %>%", "    mutate(covered = as.integer(between(truth,conf.low,conf.high))) %>%", 
@@ -1904,8 +1972,8 @@ learnr:::store_exercise_cache(structure(list(label = "pooledOLS2", global_setup 
 "    geom_vline(aes(xintercept = truth)) +", "    labs(title= glue(\"Confidence Intervals for {prettyNum(length(K),big.mark=',')} of {prettyNum(length(res$m),big.mark=',')} Estimates\"),", 
 "         y= \"Sampling Iteration\",x = \"Estimate\",", "         subtitle= glue(\"{formatC(100*mean(res$covered),digits = 1, format='f')}% of confidence intervals cover the truth\")) +", 
 "    scale_colour_manual(values = c(\"black\",\"red\")) +", "    theme(legend.position = \"none\")", 
-"}", "", "options(\"scipen\" = 100, \"digits\" = 5)", "", ""), chunk_opts = list(
-    label = "setup", include = FALSE)), setup = "params_panel <- list(\n  N = 1000,\n  T = 2,\n  tx_time = 2, \n  rho_t = 0.8,\n  beta_0 = 0.5,\n  beta_1 = 2,\n  tau = 0.5,\n  p_d = 0.5\n)\n\ndgp_panel <- function(params) {\n  with(params, {\n\n    # Time effects\n    t_ <-\n      data.frame(t = 1:T,\n                 gamma_t = arima.sim(n=T, list(ar = rho_t, order=c(1,0,0))) %>% as.vector())\n\n    # Individual measures and effects\n    i_ <-\n      data.frame(\n        unit_id = 1:N,\n        x_i = rnorm(N, mean = 0, sd = 1),\n        u_i = rnorm(N, mean = 0, sd = 1)) %>%\n      rowwise() %>% # This allows us to get each value's pr_treated in the line below. \n      mutate(pr_treated = boot::inv.logit(u_i)) %>% \n      ungroup() %>%  # This undoes the rowwise \n      # Treatment indicator\n      mutate(d_i = rbinom(N, size = 1, prob = pr_treated)) %>% \n      ungroup()\n\n    crossing(unit_id = i_$unit_id,t = t_$t) %>%\n      left_join(i_,\"unit_id\") %>%\n      left_join(t_,\"t\") %>%\n      mutate(d_i = ifelse(t<tx_time,0,d_i)) %>%\n      mutate(y_i = beta_0 + beta_1 * x_i + tau * d_i + u_i + gamma_t + rnorm(N, mean = 0, sd = 1))\n  })\n}\n\nparams_panel %>% \n  dgp_panel()\n\nestimator_fn_pols <- function(df) {\n  lm(y_i ~ x_i + d_i, data = df)\n}\n\nparams_panel %>% \n  dgp_panel() %>% \n    estimator_fn_pols()\n", 
+"}", "", "options(\"scipen\" = 100, \"digits\" = 5)", "", "#knitr::purl(here(\"Panel Data Methods I/Panel Data Methods I.Rmd\"))"
+), chunk_opts = list(label = "setup", include = FALSE)), setup = "params_panel <- list(\n  N = 1000,\n  T = 2,\n  tx_time = 2, \n  rho_t = 0.8,\n  beta_0 = 0.5,\n  beta_1 = 2,\n  tau = 0.5,\n  p_d = 0.5\n)\n\ndgp_panel <- function(params) {\n  with(params, {\n\n    # Time effects\n    t_ <-\n      data.frame(t = 1:T,\n                 gamma_t = arima.sim(n=T, list(ar = rho_t, order=c(1,0,0))) %>% as.vector())\n\n    # Individual measures and effects\n    i_ <-\n      data.frame(\n        unit_id = 1:N,\n        x_i = rnorm(N, mean = 0, sd = 1),\n        u_i = rnorm(N, mean = 0, sd = 1)) %>%\n      rowwise() %>% # This allows us to get each value's pr_treated in the line below. \n      mutate(pr_treated = boot::inv.logit(u_i)) %>% \n      ungroup() %>%  # This undoes the rowwise \n      # Treatment indicator\n      mutate(d_i = rbinom(N, size = 1, prob = pr_treated)) %>% \n      ungroup()\n\n    crossing(unit_id = i_$unit_id,t = t_$t) %>%\n      left_join(i_,\"unit_id\") %>%\n      left_join(t_,\"t\") %>%\n      mutate(d_i = ifelse(t<tx_time,0,d_i)) %>%\n      mutate(y_i = beta_0 + beta_1 * x_i + tau * d_i + u_i + gamma_t + rnorm(N, mean = 0, sd = 1))\n  })\n}\n\nparams_panel %>% \n  dgp_panel()\n\nestimator_fn_pols <- function(df) {\n  lm(y_i ~ x_i + d_i, data = df)\n}\n\nparams_panel %>% \n  dgp_panel() %>% \n    estimator_fn_pols()\n", 
     chunks = list(list(label = "dgp_panel_setup", code = "params_panel <- list(\n  N = 1000,\n  T = 2,\n  tx_time = 2, \n  rho_t = 0.8,\n  beta_0 = 0.5,\n  beta_1 = 2,\n  tau = 0.5,\n  p_d = 0.5\n)\n\ndgp_panel <- function(params) {\n  with(params, {\n\n    # Time effects\n    t_ <-\n      data.frame(t = 1:T,\n                 gamma_t = arima.sim(n=T, list(ar = rho_t, order=c(1,0,0))) %>% as.vector())\n\n    # Individual measures and effects\n    i_ <-\n      data.frame(\n        unit_id = 1:N,\n        x_i = rnorm(N, mean = 0, sd = 1),\n        u_i = rnorm(N, mean = 0, sd = 1)) %>%\n      rowwise() %>% # This allows us to get each value's pr_treated in the line below. \n      mutate(pr_treated = boot::inv.logit(u_i)) %>% \n      ungroup() %>%  # This undoes the rowwise \n      # Treatment indicator\n      mutate(d_i = rbinom(N, size = 1, prob = pr_treated)) %>% \n      ungroup()\n\n    crossing(unit_id = i_$unit_id,t = t_$t) %>%\n      left_join(i_,\"unit_id\") %>%\n      left_join(t_,\"t\") %>%\n      mutate(d_i = ifelse(t<tx_time,0,d_i)) %>%\n      mutate(y_i = beta_0 + beta_1 * x_i + tau * d_i + u_i + gamma_t + rnorm(N, mean = 0, sd = 1))\n  })\n}\n\nparams_panel %>% \n  dgp_panel()\n", 
         opts = list(label = "\"dgp_panel_setup\"", echo = "TRUE", 
             exercise = "TRUE", exercise.lines = "45L"), engine = "r"), 
@@ -1980,7 +2048,7 @@ learnr:::store_exercise_cache(structure(list(label = "re1", global_setup = struc
 "  d <- density(x)", "  p_df <- as_tibble(cbind(x = d$x, density = d$y))", 
 "  p_df %>%", "    ggplot(aes(x = x, y = density)) + geom_line() +", 
 "    #hrbrthemes::theme_ipsum() +", "    labs(x = \"Estimate\", y = \"Density\") +", 
-"    geom_vline(aes(xintercept = truth)) +", "    annotate(\"text\",x = mean(x), y = min(d$y*1.2), vjust=-1,label  = glue::glue(\"  \\tMean: {formatC(mean(x),digits = 3, format='f')}\\n   SD: {formatC(sd(x),digits = 3, format = 'f')}\"), hjust = 0)", 
+"    geom_vline(aes(xintercept = truth)) +", "    annotate(\"text\",x = mean(x), y = min(d$y*1.2), vjust=-1,label  = glue::glue(\"  \\tMean: {formatC(mean(x),digits = 3, format='f')}\\n   SD: {formatC(sd(x),digits = 3, format = 'f')}\\n   Truth: {truth}\"), hjust = 0)", 
 "}", "", "plot_cis <- function(x, K, truth) {", "  res <- x %>% bind_rows(.id = \"m\") %>%", 
 "    as_tibble() %>%", "    mutate(m = factor(m)) %>%", "    mutate(m = fct_reorder(m,estimate, .desc = TRUE)) %>%", 
 "    mutate(truth = truth) %>%", "    rowwise() %>%", "    mutate(covered = as.integer(between(truth,conf.low,conf.high))) %>%", 
@@ -1991,8 +2059,8 @@ learnr:::store_exercise_cache(structure(list(label = "re1", global_setup = struc
 "    geom_vline(aes(xintercept = truth)) +", "    labs(title= glue(\"Confidence Intervals for {prettyNum(length(K),big.mark=',')} of {prettyNum(length(res$m),big.mark=',')} Estimates\"),", 
 "         y= \"Sampling Iteration\",x = \"Estimate\",", "         subtitle= glue(\"{formatC(100*mean(res$covered),digits = 1, format='f')}% of confidence intervals cover the truth\")) +", 
 "    scale_colour_manual(values = c(\"black\",\"red\")) +", "    theme(legend.position = \"none\")", 
-"}", "", "options(\"scipen\" = 100, \"digits\" = 5)", "", ""), chunk_opts = list(
-    label = "setup", include = FALSE)), setup = "params_panel <- list(\n  N = 1000,\n  T = 2,\n  tx_time = 2, \n  rho_t = 0.8,\n  beta_0 = 0.5,\n  beta_1 = 2,\n  tau = 0.5,\n  p_d = 0.5\n)\n\ndgp_panel <- function(params) {\n  with(params, {\n\n    # Time effects\n    t_ <-\n      data.frame(t = 1:T,\n                 gamma_t = arima.sim(n=T, list(ar = rho_t, order=c(1,0,0))) %>% as.vector())\n\n    # Individual measures and effects\n    i_ <-\n      data.frame(\n        unit_id = 1:N,\n        x_i = rnorm(N, mean = 0, sd = 1),\n        u_i = rnorm(N, mean = 0, sd = 1)) %>%\n      rowwise() %>% # This allows us to get each value's pr_treated in the line below. \n      mutate(pr_treated = boot::inv.logit(u_i)) %>% \n      ungroup() %>%  # This undoes the rowwise \n      # Treatment indicator\n      mutate(d_i = rbinom(N, size = 1, prob = pr_treated)) %>% \n      ungroup()\n\n    crossing(unit_id = i_$unit_id,t = t_$t) %>%\n      left_join(i_,\"unit_id\") %>%\n      left_join(t_,\"t\") %>%\n      mutate(d_i = ifelse(t<tx_time,0,d_i)) %>%\n      mutate(y_i = beta_0 + beta_1 * x_i + tau * d_i + u_i + gamma_t + rnorm(N, mean = 0, sd = 1))\n  })\n}\n\nparams_panel %>% \n  dgp_panel()\n", 
+"}", "", "options(\"scipen\" = 100, \"digits\" = 5)", "", "#knitr::purl(here(\"Panel Data Methods I/Panel Data Methods I.Rmd\"))"
+), chunk_opts = list(label = "setup", include = FALSE)), setup = "params_panel <- list(\n  N = 1000,\n  T = 2,\n  tx_time = 2, \n  rho_t = 0.8,\n  beta_0 = 0.5,\n  beta_1 = 2,\n  tau = 0.5,\n  p_d = 0.5\n)\n\ndgp_panel <- function(params) {\n  with(params, {\n\n    # Time effects\n    t_ <-\n      data.frame(t = 1:T,\n                 gamma_t = arima.sim(n=T, list(ar = rho_t, order=c(1,0,0))) %>% as.vector())\n\n    # Individual measures and effects\n    i_ <-\n      data.frame(\n        unit_id = 1:N,\n        x_i = rnorm(N, mean = 0, sd = 1),\n        u_i = rnorm(N, mean = 0, sd = 1)) %>%\n      rowwise() %>% # This allows us to get each value's pr_treated in the line below. \n      mutate(pr_treated = boot::inv.logit(u_i)) %>% \n      ungroup() %>%  # This undoes the rowwise \n      # Treatment indicator\n      mutate(d_i = rbinom(N, size = 1, prob = pr_treated)) %>% \n      ungroup()\n\n    crossing(unit_id = i_$unit_id,t = t_$t) %>%\n      left_join(i_,\"unit_id\") %>%\n      left_join(t_,\"t\") %>%\n      mutate(d_i = ifelse(t<tx_time,0,d_i)) %>%\n      mutate(y_i = beta_0 + beta_1 * x_i + tau * d_i + u_i + gamma_t + rnorm(N, mean = 0, sd = 1))\n  })\n}\n\nparams_panel %>% \n  dgp_panel()\n", 
     chunks = list(list(label = "dgp_panel_setup", code = "params_panel <- list(\n  N = 1000,\n  T = 2,\n  tx_time = 2, \n  rho_t = 0.8,\n  beta_0 = 0.5,\n  beta_1 = 2,\n  tau = 0.5,\n  p_d = 0.5\n)\n\ndgp_panel <- function(params) {\n  with(params, {\n\n    # Time effects\n    t_ <-\n      data.frame(t = 1:T,\n                 gamma_t = arima.sim(n=T, list(ar = rho_t, order=c(1,0,0))) %>% as.vector())\n\n    # Individual measures and effects\n    i_ <-\n      data.frame(\n        unit_id = 1:N,\n        x_i = rnorm(N, mean = 0, sd = 1),\n        u_i = rnorm(N, mean = 0, sd = 1)) %>%\n      rowwise() %>% # This allows us to get each value's pr_treated in the line below. \n      mutate(pr_treated = boot::inv.logit(u_i)) %>% \n      ungroup() %>%  # This undoes the rowwise \n      # Treatment indicator\n      mutate(d_i = rbinom(N, size = 1, prob = pr_treated)) %>% \n      ungroup()\n\n    crossing(unit_id = i_$unit_id,t = t_$t) %>%\n      left_join(i_,\"unit_id\") %>%\n      left_join(t_,\"t\") %>%\n      mutate(d_i = ifelse(t<tx_time,0,d_i)) %>%\n      mutate(y_i = beta_0 + beta_1 * x_i + tau * d_i + u_i + gamma_t + rnorm(N, mean = 0, sd = 1))\n  })\n}\n\nparams_panel %>% \n  dgp_panel()\n", 
         opts = list(label = "\"dgp_panel_setup\"", echo = "TRUE", 
             exercise = "TRUE", exercise.lines = "45L"), engine = "r"), 
@@ -2055,7 +2123,7 @@ learnr:::store_exercise_cache(structure(list(label = "re2", global_setup = struc
 "  d <- density(x)", "  p_df <- as_tibble(cbind(x = d$x, density = d$y))", 
 "  p_df %>%", "    ggplot(aes(x = x, y = density)) + geom_line() +", 
 "    #hrbrthemes::theme_ipsum() +", "    labs(x = \"Estimate\", y = \"Density\") +", 
-"    geom_vline(aes(xintercept = truth)) +", "    annotate(\"text\",x = mean(x), y = min(d$y*1.2), vjust=-1,label  = glue::glue(\"  \\tMean: {formatC(mean(x),digits = 3, format='f')}\\n   SD: {formatC(sd(x),digits = 3, format = 'f')}\"), hjust = 0)", 
+"    geom_vline(aes(xintercept = truth)) +", "    annotate(\"text\",x = mean(x), y = min(d$y*1.2), vjust=-1,label  = glue::glue(\"  \\tMean: {formatC(mean(x),digits = 3, format='f')}\\n   SD: {formatC(sd(x),digits = 3, format = 'f')}\\n   Truth: {truth}\"), hjust = 0)", 
 "}", "", "plot_cis <- function(x, K, truth) {", "  res <- x %>% bind_rows(.id = \"m\") %>%", 
 "    as_tibble() %>%", "    mutate(m = factor(m)) %>%", "    mutate(m = fct_reorder(m,estimate, .desc = TRUE)) %>%", 
 "    mutate(truth = truth) %>%", "    rowwise() %>%", "    mutate(covered = as.integer(between(truth,conf.low,conf.high))) %>%", 
@@ -2066,8 +2134,8 @@ learnr:::store_exercise_cache(structure(list(label = "re2", global_setup = struc
 "    geom_vline(aes(xintercept = truth)) +", "    labs(title= glue(\"Confidence Intervals for {prettyNum(length(K),big.mark=',')} of {prettyNum(length(res$m),big.mark=',')} Estimates\"),", 
 "         y= \"Sampling Iteration\",x = \"Estimate\",", "         subtitle= glue(\"{formatC(100*mean(res$covered),digits = 1, format='f')}% of confidence intervals cover the truth\")) +", 
 "    scale_colour_manual(values = c(\"black\",\"red\")) +", "    theme(legend.position = \"none\")", 
-"}", "", "options(\"scipen\" = 100, \"digits\" = 5)", "", ""), chunk_opts = list(
-    label = "setup", include = FALSE)), setup = "params_panel <- list(\n  N = 1000,\n  T = 2,\n  tx_time = 2, \n  rho_t = 0.8,\n  beta_0 = 0.5,\n  beta_1 = 2,\n  tau = 0.5,\n  p_d = 0.5\n)\n\ndgp_panel <- function(params) {\n  with(params, {\n\n    # Time effects\n    t_ <-\n      data.frame(t = 1:T,\n                 gamma_t = arima.sim(n=T, list(ar = rho_t, order=c(1,0,0))) %>% as.vector())\n\n    # Individual measures and effects\n    i_ <-\n      data.frame(\n        unit_id = 1:N,\n        x_i = rnorm(N, mean = 0, sd = 1),\n        u_i = rnorm(N, mean = 0, sd = 1)) %>%\n      rowwise() %>% # This allows us to get each value's pr_treated in the line below. \n      mutate(pr_treated = boot::inv.logit(u_i)) %>% \n      ungroup() %>%  # This undoes the rowwise \n      # Treatment indicator\n      mutate(d_i = rbinom(N, size = 1, prob = pr_treated)) %>% \n      ungroup()\n\n    crossing(unit_id = i_$unit_id,t = t_$t) %>%\n      left_join(i_,\"unit_id\") %>%\n      left_join(t_,\"t\") %>%\n      mutate(d_i = ifelse(t<tx_time,0,d_i)) %>%\n      mutate(y_i = beta_0 + beta_1 * x_i + tau * d_i + u_i + gamma_t + rnorm(N, mean = 0, sd = 1))\n  })\n}\n\nparams_panel %>% \n  dgp_panel()\n\n\nestimator_fn_re <- function(df) {\n   lmer(y_i ~ x_i+ d_i + (1|unit_id) + (1|t), df)\n}\n\nparams_panel %>% \n  dgp_panel() %>% \n    estimator_fn_re()\n", 
+"}", "", "options(\"scipen\" = 100, \"digits\" = 5)", "", "#knitr::purl(here(\"Panel Data Methods I/Panel Data Methods I.Rmd\"))"
+), chunk_opts = list(label = "setup", include = FALSE)), setup = "params_panel <- list(\n  N = 1000,\n  T = 2,\n  tx_time = 2, \n  rho_t = 0.8,\n  beta_0 = 0.5,\n  beta_1 = 2,\n  tau = 0.5,\n  p_d = 0.5\n)\n\ndgp_panel <- function(params) {\n  with(params, {\n\n    # Time effects\n    t_ <-\n      data.frame(t = 1:T,\n                 gamma_t = arima.sim(n=T, list(ar = rho_t, order=c(1,0,0))) %>% as.vector())\n\n    # Individual measures and effects\n    i_ <-\n      data.frame(\n        unit_id = 1:N,\n        x_i = rnorm(N, mean = 0, sd = 1),\n        u_i = rnorm(N, mean = 0, sd = 1)) %>%\n      rowwise() %>% # This allows us to get each value's pr_treated in the line below. \n      mutate(pr_treated = boot::inv.logit(u_i)) %>% \n      ungroup() %>%  # This undoes the rowwise \n      # Treatment indicator\n      mutate(d_i = rbinom(N, size = 1, prob = pr_treated)) %>% \n      ungroup()\n\n    crossing(unit_id = i_$unit_id,t = t_$t) %>%\n      left_join(i_,\"unit_id\") %>%\n      left_join(t_,\"t\") %>%\n      mutate(d_i = ifelse(t<tx_time,0,d_i)) %>%\n      mutate(y_i = beta_0 + beta_1 * x_i + tau * d_i + u_i + gamma_t + rnorm(N, mean = 0, sd = 1))\n  })\n}\n\nparams_panel %>% \n  dgp_panel()\n\n\nestimator_fn_re <- function(df) {\n   lmer(y_i ~ x_i+ d_i + (1|unit_id) + (1|t), df)\n}\n\nparams_panel %>% \n  dgp_panel() %>% \n    estimator_fn_re()\n", 
     chunks = list(list(label = "dgp_panel_setup", code = "params_panel <- list(\n  N = 1000,\n  T = 2,\n  tx_time = 2, \n  rho_t = 0.8,\n  beta_0 = 0.5,\n  beta_1 = 2,\n  tau = 0.5,\n  p_d = 0.5\n)\n\ndgp_panel <- function(params) {\n  with(params, {\n\n    # Time effects\n    t_ <-\n      data.frame(t = 1:T,\n                 gamma_t = arima.sim(n=T, list(ar = rho_t, order=c(1,0,0))) %>% as.vector())\n\n    # Individual measures and effects\n    i_ <-\n      data.frame(\n        unit_id = 1:N,\n        x_i = rnorm(N, mean = 0, sd = 1),\n        u_i = rnorm(N, mean = 0, sd = 1)) %>%\n      rowwise() %>% # This allows us to get each value's pr_treated in the line below. \n      mutate(pr_treated = boot::inv.logit(u_i)) %>% \n      ungroup() %>%  # This undoes the rowwise \n      # Treatment indicator\n      mutate(d_i = rbinom(N, size = 1, prob = pr_treated)) %>% \n      ungroup()\n\n    crossing(unit_id = i_$unit_id,t = t_$t) %>%\n      left_join(i_,\"unit_id\") %>%\n      left_join(t_,\"t\") %>%\n      mutate(d_i = ifelse(t<tx_time,0,d_i)) %>%\n      mutate(y_i = beta_0 + beta_1 * x_i + tau * d_i + u_i + gamma_t + rnorm(N, mean = 0, sd = 1))\n  })\n}\n\nparams_panel %>% \n  dgp_panel()\n", 
         opts = list(label = "\"dgp_panel_setup\"", echo = "TRUE", 
             exercise = "TRUE", exercise.lines = "45L"), engine = "r"), 
@@ -2146,7 +2214,7 @@ learnr:::store_exercise_cache(structure(list(label = "dummy1", global_setup = st
 "  d <- density(x)", "  p_df <- as_tibble(cbind(x = d$x, density = d$y))", 
 "  p_df %>%", "    ggplot(aes(x = x, y = density)) + geom_line() +", 
 "    #hrbrthemes::theme_ipsum() +", "    labs(x = \"Estimate\", y = \"Density\") +", 
-"    geom_vline(aes(xintercept = truth)) +", "    annotate(\"text\",x = mean(x), y = min(d$y*1.2), vjust=-1,label  = glue::glue(\"  \\tMean: {formatC(mean(x),digits = 3, format='f')}\\n   SD: {formatC(sd(x),digits = 3, format = 'f')}\"), hjust = 0)", 
+"    geom_vline(aes(xintercept = truth)) +", "    annotate(\"text\",x = mean(x), y = min(d$y*1.2), vjust=-1,label  = glue::glue(\"  \\tMean: {formatC(mean(x),digits = 3, format='f')}\\n   SD: {formatC(sd(x),digits = 3, format = 'f')}\\n   Truth: {truth}\"), hjust = 0)", 
 "}", "", "plot_cis <- function(x, K, truth) {", "  res <- x %>% bind_rows(.id = \"m\") %>%", 
 "    as_tibble() %>%", "    mutate(m = factor(m)) %>%", "    mutate(m = fct_reorder(m,estimate, .desc = TRUE)) %>%", 
 "    mutate(truth = truth) %>%", "    rowwise() %>%", "    mutate(covered = as.integer(between(truth,conf.low,conf.high))) %>%", 
@@ -2157,8 +2225,8 @@ learnr:::store_exercise_cache(structure(list(label = "dummy1", global_setup = st
 "    geom_vline(aes(xintercept = truth)) +", "    labs(title= glue(\"Confidence Intervals for {prettyNum(length(K),big.mark=',')} of {prettyNum(length(res$m),big.mark=',')} Estimates\"),", 
 "         y= \"Sampling Iteration\",x = \"Estimate\",", "         subtitle= glue(\"{formatC(100*mean(res$covered),digits = 1, format='f')}% of confidence intervals cover the truth\")) +", 
 "    scale_colour_manual(values = c(\"black\",\"red\")) +", "    theme(legend.position = \"none\")", 
-"}", "", "options(\"scipen\" = 100, \"digits\" = 5)", "", ""), chunk_opts = list(
-    label = "setup", include = FALSE)), setup = "params_panel <- list(\n  N = 1000,\n  T = 2,\n  tx_time = 2, \n  rho_t = 0.8,\n  beta_0 = 0.5,\n  beta_1 = 2,\n  tau = 0.5,\n  p_d = 0.5\n)\n\ndgp_panel <- function(params) {\n  with(params, {\n\n    # Time effects\n    t_ <-\n      data.frame(t = 1:T,\n                 gamma_t = arima.sim(n=T, list(ar = rho_t, order=c(1,0,0))) %>% as.vector())\n\n    # Individual measures and effects\n    i_ <-\n      data.frame(\n        unit_id = 1:N,\n        x_i = rnorm(N, mean = 0, sd = 1),\n        u_i = rnorm(N, mean = 0, sd = 1)) %>%\n      rowwise() %>% # This allows us to get each value's pr_treated in the line below. \n      mutate(pr_treated = boot::inv.logit(u_i)) %>% \n      ungroup() %>%  # This undoes the rowwise \n      # Treatment indicator\n      mutate(d_i = rbinom(N, size = 1, prob = pr_treated)) %>% \n      ungroup()\n\n    crossing(unit_id = i_$unit_id,t = t_$t) %>%\n      left_join(i_,\"unit_id\") %>%\n      left_join(t_,\"t\") %>%\n      mutate(d_i = ifelse(t<tx_time,0,d_i)) %>%\n      mutate(y_i = beta_0 + beta_1 * x_i + tau * d_i + u_i + gamma_t + rnorm(N, mean = 0, sd = 1))\n  })\n}\n\nparams_panel %>% \n  dgp_panel()\n", 
+"}", "", "options(\"scipen\" = 100, \"digits\" = 5)", "", "#knitr::purl(here(\"Panel Data Methods I/Panel Data Methods I.Rmd\"))"
+), chunk_opts = list(label = "setup", include = FALSE)), setup = "params_panel <- list(\n  N = 1000,\n  T = 2,\n  tx_time = 2, \n  rho_t = 0.8,\n  beta_0 = 0.5,\n  beta_1 = 2,\n  tau = 0.5,\n  p_d = 0.5\n)\n\ndgp_panel <- function(params) {\n  with(params, {\n\n    # Time effects\n    t_ <-\n      data.frame(t = 1:T,\n                 gamma_t = arima.sim(n=T, list(ar = rho_t, order=c(1,0,0))) %>% as.vector())\n\n    # Individual measures and effects\n    i_ <-\n      data.frame(\n        unit_id = 1:N,\n        x_i = rnorm(N, mean = 0, sd = 1),\n        u_i = rnorm(N, mean = 0, sd = 1)) %>%\n      rowwise() %>% # This allows us to get each value's pr_treated in the line below. \n      mutate(pr_treated = boot::inv.logit(u_i)) %>% \n      ungroup() %>%  # This undoes the rowwise \n      # Treatment indicator\n      mutate(d_i = rbinom(N, size = 1, prob = pr_treated)) %>% \n      ungroup()\n\n    crossing(unit_id = i_$unit_id,t = t_$t) %>%\n      left_join(i_,\"unit_id\") %>%\n      left_join(t_,\"t\") %>%\n      mutate(d_i = ifelse(t<tx_time,0,d_i)) %>%\n      mutate(y_i = beta_0 + beta_1 * x_i + tau * d_i + u_i + gamma_t + rnorm(N, mean = 0, sd = 1))\n  })\n}\n\nparams_panel %>% \n  dgp_panel()\n", 
     chunks = list(list(label = "dgp_panel_setup", code = "params_panel <- list(\n  N = 1000,\n  T = 2,\n  tx_time = 2, \n  rho_t = 0.8,\n  beta_0 = 0.5,\n  beta_1 = 2,\n  tau = 0.5,\n  p_d = 0.5\n)\n\ndgp_panel <- function(params) {\n  with(params, {\n\n    # Time effects\n    t_ <-\n      data.frame(t = 1:T,\n                 gamma_t = arima.sim(n=T, list(ar = rho_t, order=c(1,0,0))) %>% as.vector())\n\n    # Individual measures and effects\n    i_ <-\n      data.frame(\n        unit_id = 1:N,\n        x_i = rnorm(N, mean = 0, sd = 1),\n        u_i = rnorm(N, mean = 0, sd = 1)) %>%\n      rowwise() %>% # This allows us to get each value's pr_treated in the line below. \n      mutate(pr_treated = boot::inv.logit(u_i)) %>% \n      ungroup() %>%  # This undoes the rowwise \n      # Treatment indicator\n      mutate(d_i = rbinom(N, size = 1, prob = pr_treated)) %>% \n      ungroup()\n\n    crossing(unit_id = i_$unit_id,t = t_$t) %>%\n      left_join(i_,\"unit_id\") %>%\n      left_join(t_,\"t\") %>%\n      mutate(d_i = ifelse(t<tx_time,0,d_i)) %>%\n      mutate(y_i = beta_0 + beta_1 * x_i + tau * d_i + u_i + gamma_t + rnorm(N, mean = 0, sd = 1))\n  })\n}\n\nparams_panel %>% \n  dgp_panel()\n", 
         opts = list(label = "\"dgp_panel_setup\"", echo = "TRUE", 
             exercise = "TRUE", exercise.lines = "45L"), engine = "r"), 
@@ -2222,7 +2290,7 @@ learnr:::store_exercise_cache(structure(list(label = "fistdiff1", global_setup =
 "  d <- density(x)", "  p_df <- as_tibble(cbind(x = d$x, density = d$y))", 
 "  p_df %>%", "    ggplot(aes(x = x, y = density)) + geom_line() +", 
 "    #hrbrthemes::theme_ipsum() +", "    labs(x = \"Estimate\", y = \"Density\") +", 
-"    geom_vline(aes(xintercept = truth)) +", "    annotate(\"text\",x = mean(x), y = min(d$y*1.2), vjust=-1,label  = glue::glue(\"  \\tMean: {formatC(mean(x),digits = 3, format='f')}\\n   SD: {formatC(sd(x),digits = 3, format = 'f')}\"), hjust = 0)", 
+"    geom_vline(aes(xintercept = truth)) +", "    annotate(\"text\",x = mean(x), y = min(d$y*1.2), vjust=-1,label  = glue::glue(\"  \\tMean: {formatC(mean(x),digits = 3, format='f')}\\n   SD: {formatC(sd(x),digits = 3, format = 'f')}\\n   Truth: {truth}\"), hjust = 0)", 
 "}", "", "plot_cis <- function(x, K, truth) {", "  res <- x %>% bind_rows(.id = \"m\") %>%", 
 "    as_tibble() %>%", "    mutate(m = factor(m)) %>%", "    mutate(m = fct_reorder(m,estimate, .desc = TRUE)) %>%", 
 "    mutate(truth = truth) %>%", "    rowwise() %>%", "    mutate(covered = as.integer(between(truth,conf.low,conf.high))) %>%", 
@@ -2233,8 +2301,8 @@ learnr:::store_exercise_cache(structure(list(label = "fistdiff1", global_setup =
 "    geom_vline(aes(xintercept = truth)) +", "    labs(title= glue(\"Confidence Intervals for {prettyNum(length(K),big.mark=',')} of {prettyNum(length(res$m),big.mark=',')} Estimates\"),", 
 "         y= \"Sampling Iteration\",x = \"Estimate\",", "         subtitle= glue(\"{formatC(100*mean(res$covered),digits = 1, format='f')}% of confidence intervals cover the truth\")) +", 
 "    scale_colour_manual(values = c(\"black\",\"red\")) +", "    theme(legend.position = \"none\")", 
-"}", "", "options(\"scipen\" = 100, \"digits\" = 5)", "", ""), chunk_opts = list(
-    label = "setup", include = FALSE)), setup = "params_panel <- list(\n  N = 1000,\n  T = 2,\n  tx_time = 2, \n  rho_t = 0.8,\n  beta_0 = 0.5,\n  beta_1 = 2,\n  tau = 0.5,\n  p_d = 0.5\n)\n\ndgp_panel <- function(params) {\n  with(params, {\n\n    # Time effects\n    t_ <-\n      data.frame(t = 1:T,\n                 gamma_t = arima.sim(n=T, list(ar = rho_t, order=c(1,0,0))) %>% as.vector())\n\n    # Individual measures and effects\n    i_ <-\n      data.frame(\n        unit_id = 1:N,\n        x_i = rnorm(N, mean = 0, sd = 1),\n        u_i = rnorm(N, mean = 0, sd = 1)) %>%\n      rowwise() %>% # This allows us to get each value's pr_treated in the line below. \n      mutate(pr_treated = boot::inv.logit(u_i)) %>% \n      ungroup() %>%  # This undoes the rowwise \n      # Treatment indicator\n      mutate(d_i = rbinom(N, size = 1, prob = pr_treated)) %>% \n      ungroup()\n\n    crossing(unit_id = i_$unit_id,t = t_$t) %>%\n      left_join(i_,\"unit_id\") %>%\n      left_join(t_,\"t\") %>%\n      mutate(d_i = ifelse(t<tx_time,0,d_i)) %>%\n      mutate(y_i = beta_0 + beta_1 * x_i + tau * d_i + u_i + gamma_t + rnorm(N, mean = 0, sd = 1))\n  })\n}\n\nparams_panel %>% \n  dgp_panel()\n", 
+"}", "", "options(\"scipen\" = 100, \"digits\" = 5)", "", "#knitr::purl(here(\"Panel Data Methods I/Panel Data Methods I.Rmd\"))"
+), chunk_opts = list(label = "setup", include = FALSE)), setup = "params_panel <- list(\n  N = 1000,\n  T = 2,\n  tx_time = 2, \n  rho_t = 0.8,\n  beta_0 = 0.5,\n  beta_1 = 2,\n  tau = 0.5,\n  p_d = 0.5\n)\n\ndgp_panel <- function(params) {\n  with(params, {\n\n    # Time effects\n    t_ <-\n      data.frame(t = 1:T,\n                 gamma_t = arima.sim(n=T, list(ar = rho_t, order=c(1,0,0))) %>% as.vector())\n\n    # Individual measures and effects\n    i_ <-\n      data.frame(\n        unit_id = 1:N,\n        x_i = rnorm(N, mean = 0, sd = 1),\n        u_i = rnorm(N, mean = 0, sd = 1)) %>%\n      rowwise() %>% # This allows us to get each value's pr_treated in the line below. \n      mutate(pr_treated = boot::inv.logit(u_i)) %>% \n      ungroup() %>%  # This undoes the rowwise \n      # Treatment indicator\n      mutate(d_i = rbinom(N, size = 1, prob = pr_treated)) %>% \n      ungroup()\n\n    crossing(unit_id = i_$unit_id,t = t_$t) %>%\n      left_join(i_,\"unit_id\") %>%\n      left_join(t_,\"t\") %>%\n      mutate(d_i = ifelse(t<tx_time,0,d_i)) %>%\n      mutate(y_i = beta_0 + beta_1 * x_i + tau * d_i + u_i + gamma_t + rnorm(N, mean = 0, sd = 1))\n  })\n}\n\nparams_panel %>% \n  dgp_panel()\n", 
     chunks = list(list(label = "dgp_panel_setup", code = "params_panel <- list(\n  N = 1000,\n  T = 2,\n  tx_time = 2, \n  rho_t = 0.8,\n  beta_0 = 0.5,\n  beta_1 = 2,\n  tau = 0.5,\n  p_d = 0.5\n)\n\ndgp_panel <- function(params) {\n  with(params, {\n\n    # Time effects\n    t_ <-\n      data.frame(t = 1:T,\n                 gamma_t = arima.sim(n=T, list(ar = rho_t, order=c(1,0,0))) %>% as.vector())\n\n    # Individual measures and effects\n    i_ <-\n      data.frame(\n        unit_id = 1:N,\n        x_i = rnorm(N, mean = 0, sd = 1),\n        u_i = rnorm(N, mean = 0, sd = 1)) %>%\n      rowwise() %>% # This allows us to get each value's pr_treated in the line below. \n      mutate(pr_treated = boot::inv.logit(u_i)) %>% \n      ungroup() %>%  # This undoes the rowwise \n      # Treatment indicator\n      mutate(d_i = rbinom(N, size = 1, prob = pr_treated)) %>% \n      ungroup()\n\n    crossing(unit_id = i_$unit_id,t = t_$t) %>%\n      left_join(i_,\"unit_id\") %>%\n      left_join(t_,\"t\") %>%\n      mutate(d_i = ifelse(t<tx_time,0,d_i)) %>%\n      mutate(y_i = beta_0 + beta_1 * x_i + tau * d_i + u_i + gamma_t + rnorm(N, mean = 0, sd = 1))\n  })\n}\n\nparams_panel %>% \n  dgp_panel()\n", 
         opts = list(label = "\"dgp_panel_setup\"", echo = "TRUE", 
             exercise = "TRUE", exercise.lines = "45L"), engine = "r"), 
@@ -2301,7 +2369,7 @@ learnr:::store_exercise_cache(structure(list(label = "fistdiff2", global_setup =
 "  d <- density(x)", "  p_df <- as_tibble(cbind(x = d$x, density = d$y))", 
 "  p_df %>%", "    ggplot(aes(x = x, y = density)) + geom_line() +", 
 "    #hrbrthemes::theme_ipsum() +", "    labs(x = \"Estimate\", y = \"Density\") +", 
-"    geom_vline(aes(xintercept = truth)) +", "    annotate(\"text\",x = mean(x), y = min(d$y*1.2), vjust=-1,label  = glue::glue(\"  \\tMean: {formatC(mean(x),digits = 3, format='f')}\\n   SD: {formatC(sd(x),digits = 3, format = 'f')}\"), hjust = 0)", 
+"    geom_vline(aes(xintercept = truth)) +", "    annotate(\"text\",x = mean(x), y = min(d$y*1.2), vjust=-1,label  = glue::glue(\"  \\tMean: {formatC(mean(x),digits = 3, format='f')}\\n   SD: {formatC(sd(x),digits = 3, format = 'f')}\\n   Truth: {truth}\"), hjust = 0)", 
 "}", "", "plot_cis <- function(x, K, truth) {", "  res <- x %>% bind_rows(.id = \"m\") %>%", 
 "    as_tibble() %>%", "    mutate(m = factor(m)) %>%", "    mutate(m = fct_reorder(m,estimate, .desc = TRUE)) %>%", 
 "    mutate(truth = truth) %>%", "    rowwise() %>%", "    mutate(covered = as.integer(between(truth,conf.low,conf.high))) %>%", 
@@ -2312,8 +2380,8 @@ learnr:::store_exercise_cache(structure(list(label = "fistdiff2", global_setup =
 "    geom_vline(aes(xintercept = truth)) +", "    labs(title= glue(\"Confidence Intervals for {prettyNum(length(K),big.mark=',')} of {prettyNum(length(res$m),big.mark=',')} Estimates\"),", 
 "         y= \"Sampling Iteration\",x = \"Estimate\",", "         subtitle= glue(\"{formatC(100*mean(res$covered),digits = 1, format='f')}% of confidence intervals cover the truth\")) +", 
 "    scale_colour_manual(values = c(\"black\",\"red\")) +", "    theme(legend.position = \"none\")", 
-"}", "", "options(\"scipen\" = 100, \"digits\" = 5)", "", ""), chunk_opts = list(
-    label = "setup", include = FALSE)), setup = "params_panel <- list(\n  N = 1000,\n  T = 2,\n  tx_time = 2, \n  rho_t = 0.8,\n  beta_0 = 0.5,\n  beta_1 = 2,\n  tau = 0.5,\n  p_d = 0.5\n)\n\ndgp_panel <- function(params) {\n  with(params, {\n\n    # Time effects\n    t_ <-\n      data.frame(t = 1:T,\n                 gamma_t = arima.sim(n=T, list(ar = rho_t, order=c(1,0,0))) %>% as.vector())\n\n    # Individual measures and effects\n    i_ <-\n      data.frame(\n        unit_id = 1:N,\n        x_i = rnorm(N, mean = 0, sd = 1),\n        u_i = rnorm(N, mean = 0, sd = 1)) %>%\n      rowwise() %>% # This allows us to get each value's pr_treated in the line below. \n      mutate(pr_treated = boot::inv.logit(u_i)) %>% \n      ungroup() %>%  # This undoes the rowwise \n      # Treatment indicator\n      mutate(d_i = rbinom(N, size = 1, prob = pr_treated)) %>% \n      ungroup()\n\n    crossing(unit_id = i_$unit_id,t = t_$t) %>%\n      left_join(i_,\"unit_id\") %>%\n      left_join(t_,\"t\") %>%\n      mutate(d_i = ifelse(t<tx_time,0,d_i)) %>%\n      mutate(y_i = beta_0 + beta_1 * x_i + tau * d_i + u_i + gamma_t + rnorm(N, mean = 0, sd = 1))\n  })\n}\n\nparams_panel %>% \n  dgp_panel()\n\nconstruct_first_diff <- function(df) {\n  df_ <- \n    df %>% \n      arrange(unit_id,t) %>% \n      group_by(unit_id) %>% \n      mutate(y_fd = y_i - lag(y_i),\n             x_fd = x_i - lag(x_i),\n             d_fd = d_i - lag(d_i)) %>% \n      filter(t==2)\n  return(df_)\n}\n\nestimate_first_diff <- function(df) {\n  lm(y_fd ~ d_fd , data = df)\n}\n\nparams_panel %>% \n  dgp_panel() %>% \n    construct_first_diff() %>% \n      estimate_first_diff() %>% \n        summary() \n", 
+"}", "", "options(\"scipen\" = 100, \"digits\" = 5)", "", "#knitr::purl(here(\"Panel Data Methods I/Panel Data Methods I.Rmd\"))"
+), chunk_opts = list(label = "setup", include = FALSE)), setup = "params_panel <- list(\n  N = 1000,\n  T = 2,\n  tx_time = 2, \n  rho_t = 0.8,\n  beta_0 = 0.5,\n  beta_1 = 2,\n  tau = 0.5,\n  p_d = 0.5\n)\n\ndgp_panel <- function(params) {\n  with(params, {\n\n    # Time effects\n    t_ <-\n      data.frame(t = 1:T,\n                 gamma_t = arima.sim(n=T, list(ar = rho_t, order=c(1,0,0))) %>% as.vector())\n\n    # Individual measures and effects\n    i_ <-\n      data.frame(\n        unit_id = 1:N,\n        x_i = rnorm(N, mean = 0, sd = 1),\n        u_i = rnorm(N, mean = 0, sd = 1)) %>%\n      rowwise() %>% # This allows us to get each value's pr_treated in the line below. \n      mutate(pr_treated = boot::inv.logit(u_i)) %>% \n      ungroup() %>%  # This undoes the rowwise \n      # Treatment indicator\n      mutate(d_i = rbinom(N, size = 1, prob = pr_treated)) %>% \n      ungroup()\n\n    crossing(unit_id = i_$unit_id,t = t_$t) %>%\n      left_join(i_,\"unit_id\") %>%\n      left_join(t_,\"t\") %>%\n      mutate(d_i = ifelse(t<tx_time,0,d_i)) %>%\n      mutate(y_i = beta_0 + beta_1 * x_i + tau * d_i + u_i + gamma_t + rnorm(N, mean = 0, sd = 1))\n  })\n}\n\nparams_panel %>% \n  dgp_panel()\n\nconstruct_first_diff <- function(df) {\n  df_ <- \n    df %>% \n      arrange(unit_id,t) %>% \n      group_by(unit_id) %>% \n      mutate(y_fd = y_i - lag(y_i),\n             x_fd = x_i - lag(x_i),\n             d_fd = d_i - lag(d_i)) %>% \n      filter(t==2)\n  return(df_)\n}\n\nestimate_first_diff <- function(df) {\n  lm(y_fd ~ d_fd , data = df)\n}\n\nparams_panel %>% \n  dgp_panel() %>% \n    construct_first_diff() %>% \n      estimate_first_diff() %>% \n        summary() \n", 
     chunks = list(list(label = "dgp_panel_setup", code = "params_panel <- list(\n  N = 1000,\n  T = 2,\n  tx_time = 2, \n  rho_t = 0.8,\n  beta_0 = 0.5,\n  beta_1 = 2,\n  tau = 0.5,\n  p_d = 0.5\n)\n\ndgp_panel <- function(params) {\n  with(params, {\n\n    # Time effects\n    t_ <-\n      data.frame(t = 1:T,\n                 gamma_t = arima.sim(n=T, list(ar = rho_t, order=c(1,0,0))) %>% as.vector())\n\n    # Individual measures and effects\n    i_ <-\n      data.frame(\n        unit_id = 1:N,\n        x_i = rnorm(N, mean = 0, sd = 1),\n        u_i = rnorm(N, mean = 0, sd = 1)) %>%\n      rowwise() %>% # This allows us to get each value's pr_treated in the line below. \n      mutate(pr_treated = boot::inv.logit(u_i)) %>% \n      ungroup() %>%  # This undoes the rowwise \n      # Treatment indicator\n      mutate(d_i = rbinom(N, size = 1, prob = pr_treated)) %>% \n      ungroup()\n\n    crossing(unit_id = i_$unit_id,t = t_$t) %>%\n      left_join(i_,\"unit_id\") %>%\n      left_join(t_,\"t\") %>%\n      mutate(d_i = ifelse(t<tx_time,0,d_i)) %>%\n      mutate(y_i = beta_0 + beta_1 * x_i + tau * d_i + u_i + gamma_t + rnorm(N, mean = 0, sd = 1))\n  })\n}\n\nparams_panel %>% \n  dgp_panel()\n", 
         opts = list(label = "\"dgp_panel_setup\"", echo = "TRUE", 
             exercise = "TRUE", exercise.lines = "45L"), engine = "r"), 
@@ -2386,7 +2454,7 @@ learnr:::store_exercise_cache(structure(list(label = "demean1", global_setup = s
 "  d <- density(x)", "  p_df <- as_tibble(cbind(x = d$x, density = d$y))", 
 "  p_df %>%", "    ggplot(aes(x = x, y = density)) + geom_line() +", 
 "    #hrbrthemes::theme_ipsum() +", "    labs(x = \"Estimate\", y = \"Density\") +", 
-"    geom_vline(aes(xintercept = truth)) +", "    annotate(\"text\",x = mean(x), y = min(d$y*1.2), vjust=-1,label  = glue::glue(\"  \\tMean: {formatC(mean(x),digits = 3, format='f')}\\n   SD: {formatC(sd(x),digits = 3, format = 'f')}\"), hjust = 0)", 
+"    geom_vline(aes(xintercept = truth)) +", "    annotate(\"text\",x = mean(x), y = min(d$y*1.2), vjust=-1,label  = glue::glue(\"  \\tMean: {formatC(mean(x),digits = 3, format='f')}\\n   SD: {formatC(sd(x),digits = 3, format = 'f')}\\n   Truth: {truth}\"), hjust = 0)", 
 "}", "", "plot_cis <- function(x, K, truth) {", "  res <- x %>% bind_rows(.id = \"m\") %>%", 
 "    as_tibble() %>%", "    mutate(m = factor(m)) %>%", "    mutate(m = fct_reorder(m,estimate, .desc = TRUE)) %>%", 
 "    mutate(truth = truth) %>%", "    rowwise() %>%", "    mutate(covered = as.integer(between(truth,conf.low,conf.high))) %>%", 
@@ -2397,8 +2465,8 @@ learnr:::store_exercise_cache(structure(list(label = "demean1", global_setup = s
 "    geom_vline(aes(xintercept = truth)) +", "    labs(title= glue(\"Confidence Intervals for {prettyNum(length(K),big.mark=',')} of {prettyNum(length(res$m),big.mark=',')} Estimates\"),", 
 "         y= \"Sampling Iteration\",x = \"Estimate\",", "         subtitle= glue(\"{formatC(100*mean(res$covered),digits = 1, format='f')}% of confidence intervals cover the truth\")) +", 
 "    scale_colour_manual(values = c(\"black\",\"red\")) +", "    theme(legend.position = \"none\")", 
-"}", "", "options(\"scipen\" = 100, \"digits\" = 5)", "", ""), chunk_opts = list(
-    label = "setup", include = FALSE)), setup = "params_panel <- list(\n  N = 1000,\n  T = 2,\n  tx_time = 2, \n  rho_t = 0.8,\n  beta_0 = 0.5,\n  beta_1 = 2,\n  tau = 0.5,\n  p_d = 0.5\n)\n\ndgp_panel <- function(params) {\n  with(params, {\n\n    # Time effects\n    t_ <-\n      data.frame(t = 1:T,\n                 gamma_t = arima.sim(n=T, list(ar = rho_t, order=c(1,0,0))) %>% as.vector())\n\n    # Individual measures and effects\n    i_ <-\n      data.frame(\n        unit_id = 1:N,\n        x_i = rnorm(N, mean = 0, sd = 1),\n        u_i = rnorm(N, mean = 0, sd = 1)) %>%\n      rowwise() %>% # This allows us to get each value's pr_treated in the line below. \n      mutate(pr_treated = boot::inv.logit(u_i)) %>% \n      ungroup() %>%  # This undoes the rowwise \n      # Treatment indicator\n      mutate(d_i = rbinom(N, size = 1, prob = pr_treated)) %>% \n      ungroup()\n\n    crossing(unit_id = i_$unit_id,t = t_$t) %>%\n      left_join(i_,\"unit_id\") %>%\n      left_join(t_,\"t\") %>%\n      mutate(d_i = ifelse(t<tx_time,0,d_i)) %>%\n      mutate(y_i = beta_0 + beta_1 * x_i + tau * d_i + u_i + gamma_t + rnorm(N, mean = 0, sd = 1))\n  })\n}\n\nparams_panel %>% \n  dgp_panel()\n", 
+"}", "", "options(\"scipen\" = 100, \"digits\" = 5)", "", "#knitr::purl(here(\"Panel Data Methods I/Panel Data Methods I.Rmd\"))"
+), chunk_opts = list(label = "setup", include = FALSE)), setup = "params_panel <- list(\n  N = 1000,\n  T = 2,\n  tx_time = 2, \n  rho_t = 0.8,\n  beta_0 = 0.5,\n  beta_1 = 2,\n  tau = 0.5,\n  p_d = 0.5\n)\n\ndgp_panel <- function(params) {\n  with(params, {\n\n    # Time effects\n    t_ <-\n      data.frame(t = 1:T,\n                 gamma_t = arima.sim(n=T, list(ar = rho_t, order=c(1,0,0))) %>% as.vector())\n\n    # Individual measures and effects\n    i_ <-\n      data.frame(\n        unit_id = 1:N,\n        x_i = rnorm(N, mean = 0, sd = 1),\n        u_i = rnorm(N, mean = 0, sd = 1)) %>%\n      rowwise() %>% # This allows us to get each value's pr_treated in the line below. \n      mutate(pr_treated = boot::inv.logit(u_i)) %>% \n      ungroup() %>%  # This undoes the rowwise \n      # Treatment indicator\n      mutate(d_i = rbinom(N, size = 1, prob = pr_treated)) %>% \n      ungroup()\n\n    crossing(unit_id = i_$unit_id,t = t_$t) %>%\n      left_join(i_,\"unit_id\") %>%\n      left_join(t_,\"t\") %>%\n      mutate(d_i = ifelse(t<tx_time,0,d_i)) %>%\n      mutate(y_i = beta_0 + beta_1 * x_i + tau * d_i + u_i + gamma_t + rnorm(N, mean = 0, sd = 1))\n  })\n}\n\nparams_panel %>% \n  dgp_panel()\n", 
     chunks = list(list(label = "dgp_panel_setup", code = "params_panel <- list(\n  N = 1000,\n  T = 2,\n  tx_time = 2, \n  rho_t = 0.8,\n  beta_0 = 0.5,\n  beta_1 = 2,\n  tau = 0.5,\n  p_d = 0.5\n)\n\ndgp_panel <- function(params) {\n  with(params, {\n\n    # Time effects\n    t_ <-\n      data.frame(t = 1:T,\n                 gamma_t = arima.sim(n=T, list(ar = rho_t, order=c(1,0,0))) %>% as.vector())\n\n    # Individual measures and effects\n    i_ <-\n      data.frame(\n        unit_id = 1:N,\n        x_i = rnorm(N, mean = 0, sd = 1),\n        u_i = rnorm(N, mean = 0, sd = 1)) %>%\n      rowwise() %>% # This allows us to get each value's pr_treated in the line below. \n      mutate(pr_treated = boot::inv.logit(u_i)) %>% \n      ungroup() %>%  # This undoes the rowwise \n      # Treatment indicator\n      mutate(d_i = rbinom(N, size = 1, prob = pr_treated)) %>% \n      ungroup()\n\n    crossing(unit_id = i_$unit_id,t = t_$t) %>%\n      left_join(i_,\"unit_id\") %>%\n      left_join(t_,\"t\") %>%\n      mutate(d_i = ifelse(t<tx_time,0,d_i)) %>%\n      mutate(y_i = beta_0 + beta_1 * x_i + tau * d_i + u_i + gamma_t + rnorm(N, mean = 0, sd = 1))\n  })\n}\n\nparams_panel %>% \n  dgp_panel()\n", 
         opts = list(label = "\"dgp_panel_setup\"", echo = "TRUE", 
             exercise = "TRUE", exercise.lines = "45L"), engine = "r"), 
@@ -2467,7 +2535,7 @@ learnr:::store_exercise_cache(structure(list(label = "demean2", global_setup = s
 "  d <- density(x)", "  p_df <- as_tibble(cbind(x = d$x, density = d$y))", 
 "  p_df %>%", "    ggplot(aes(x = x, y = density)) + geom_line() +", 
 "    #hrbrthemes::theme_ipsum() +", "    labs(x = \"Estimate\", y = \"Density\") +", 
-"    geom_vline(aes(xintercept = truth)) +", "    annotate(\"text\",x = mean(x), y = min(d$y*1.2), vjust=-1,label  = glue::glue(\"  \\tMean: {formatC(mean(x),digits = 3, format='f')}\\n   SD: {formatC(sd(x),digits = 3, format = 'f')}\"), hjust = 0)", 
+"    geom_vline(aes(xintercept = truth)) +", "    annotate(\"text\",x = mean(x), y = min(d$y*1.2), vjust=-1,label  = glue::glue(\"  \\tMean: {formatC(mean(x),digits = 3, format='f')}\\n   SD: {formatC(sd(x),digits = 3, format = 'f')}\\n   Truth: {truth}\"), hjust = 0)", 
 "}", "", "plot_cis <- function(x, K, truth) {", "  res <- x %>% bind_rows(.id = \"m\") %>%", 
 "    as_tibble() %>%", "    mutate(m = factor(m)) %>%", "    mutate(m = fct_reorder(m,estimate, .desc = TRUE)) %>%", 
 "    mutate(truth = truth) %>%", "    rowwise() %>%", "    mutate(covered = as.integer(between(truth,conf.low,conf.high))) %>%", 
@@ -2478,8 +2546,8 @@ learnr:::store_exercise_cache(structure(list(label = "demean2", global_setup = s
 "    geom_vline(aes(xintercept = truth)) +", "    labs(title= glue(\"Confidence Intervals for {prettyNum(length(K),big.mark=',')} of {prettyNum(length(res$m),big.mark=',')} Estimates\"),", 
 "         y= \"Sampling Iteration\",x = \"Estimate\",", "         subtitle= glue(\"{formatC(100*mean(res$covered),digits = 1, format='f')}% of confidence intervals cover the truth\")) +", 
 "    scale_colour_manual(values = c(\"black\",\"red\")) +", "    theme(legend.position = \"none\")", 
-"}", "", "options(\"scipen\" = 100, \"digits\" = 5)", "", ""), chunk_opts = list(
-    label = "setup", include = FALSE)), setup = "params_panel <- list(\n  N = 1000,\n  T = 2,\n  tx_time = 2, \n  rho_t = 0.8,\n  beta_0 = 0.5,\n  beta_1 = 2,\n  tau = 0.5,\n  p_d = 0.5\n)\n\ndgp_panel <- function(params) {\n  with(params, {\n\n    # Time effects\n    t_ <-\n      data.frame(t = 1:T,\n                 gamma_t = arima.sim(n=T, list(ar = rho_t, order=c(1,0,0))) %>% as.vector())\n\n    # Individual measures and effects\n    i_ <-\n      data.frame(\n        unit_id = 1:N,\n        x_i = rnorm(N, mean = 0, sd = 1),\n        u_i = rnorm(N, mean = 0, sd = 1)) %>%\n      rowwise() %>% # This allows us to get each value's pr_treated in the line below. \n      mutate(pr_treated = boot::inv.logit(u_i)) %>% \n      ungroup() %>%  # This undoes the rowwise \n      # Treatment indicator\n      mutate(d_i = rbinom(N, size = 1, prob = pr_treated)) %>% \n      ungroup()\n\n    crossing(unit_id = i_$unit_id,t = t_$t) %>%\n      left_join(i_,\"unit_id\") %>%\n      left_join(t_,\"t\") %>%\n      mutate(d_i = ifelse(t<tx_time,0,d_i)) %>%\n      mutate(y_i = beta_0 + beta_1 * x_i + tau * d_i + u_i + gamma_t + rnorm(N, mean = 0, sd = 1))\n  })\n}\n\nparams_panel %>% \n  dgp_panel()\n\ndemean_data <- function(df) {\n  df_ <- \n    df %>% \n      mutate(\n            # Step 1: Add in the global mean.\n            y_dm = y_i + mean(y_i),\n            d_dm = d_i + mean(d_i)) %>% \n            # Step 2: Subtract out the time-period means\n            group_by(t) %>% \n            mutate(y_dm = y_dm - mean(y_dm),\n            d_dm = d_dm - mean(d_i)) %>% \n            # Step 3: Subtract out the unit-level means. \n            group_by(unit_id) %>% \n            mutate(y_dm = y_dm - mean(y_dm),\n            d_dm = d_dm - mean(d_dm)) %>% \n            ungroup()\n\n  return(df_)\n}\n\nparams_panel %>% \n  dgp_panel() %>% \n    demean_data() ", 
+"}", "", "options(\"scipen\" = 100, \"digits\" = 5)", "", "#knitr::purl(here(\"Panel Data Methods I/Panel Data Methods I.Rmd\"))"
+), chunk_opts = list(label = "setup", include = FALSE)), setup = "params_panel <- list(\n  N = 1000,\n  T = 2,\n  tx_time = 2, \n  rho_t = 0.8,\n  beta_0 = 0.5,\n  beta_1 = 2,\n  tau = 0.5,\n  p_d = 0.5\n)\n\ndgp_panel <- function(params) {\n  with(params, {\n\n    # Time effects\n    t_ <-\n      data.frame(t = 1:T,\n                 gamma_t = arima.sim(n=T, list(ar = rho_t, order=c(1,0,0))) %>% as.vector())\n\n    # Individual measures and effects\n    i_ <-\n      data.frame(\n        unit_id = 1:N,\n        x_i = rnorm(N, mean = 0, sd = 1),\n        u_i = rnorm(N, mean = 0, sd = 1)) %>%\n      rowwise() %>% # This allows us to get each value's pr_treated in the line below. \n      mutate(pr_treated = boot::inv.logit(u_i)) %>% \n      ungroup() %>%  # This undoes the rowwise \n      # Treatment indicator\n      mutate(d_i = rbinom(N, size = 1, prob = pr_treated)) %>% \n      ungroup()\n\n    crossing(unit_id = i_$unit_id,t = t_$t) %>%\n      left_join(i_,\"unit_id\") %>%\n      left_join(t_,\"t\") %>%\n      mutate(d_i = ifelse(t<tx_time,0,d_i)) %>%\n      mutate(y_i = beta_0 + beta_1 * x_i + tau * d_i + u_i + gamma_t + rnorm(N, mean = 0, sd = 1))\n  })\n}\n\nparams_panel %>% \n  dgp_panel()\n\ndemean_data <- function(df) {\n  df_ <- \n    df %>% \n      mutate(\n            # Step 1: Add in the global mean.\n            y_dm = y_i + mean(y_i),\n            d_dm = d_i + mean(d_i)) %>% \n            # Step 2: Subtract out the time-period means\n            group_by(t) %>% \n            mutate(y_dm = y_dm - mean(y_dm),\n            d_dm = d_dm - mean(d_i)) %>% \n            # Step 3: Subtract out the unit-level means. \n            group_by(unit_id) %>% \n            mutate(y_dm = y_dm - mean(y_dm),\n            d_dm = d_dm - mean(d_dm)) %>% \n            ungroup()\n\n  return(df_)\n}\n\nparams_panel %>% \n  dgp_panel() %>% \n    demean_data() ", 
     chunks = list(list(label = "dgp_panel_setup", code = "params_panel <- list(\n  N = 1000,\n  T = 2,\n  tx_time = 2, \n  rho_t = 0.8,\n  beta_0 = 0.5,\n  beta_1 = 2,\n  tau = 0.5,\n  p_d = 0.5\n)\n\ndgp_panel <- function(params) {\n  with(params, {\n\n    # Time effects\n    t_ <-\n      data.frame(t = 1:T,\n                 gamma_t = arima.sim(n=T, list(ar = rho_t, order=c(1,0,0))) %>% as.vector())\n\n    # Individual measures and effects\n    i_ <-\n      data.frame(\n        unit_id = 1:N,\n        x_i = rnorm(N, mean = 0, sd = 1),\n        u_i = rnorm(N, mean = 0, sd = 1)) %>%\n      rowwise() %>% # This allows us to get each value's pr_treated in the line below. \n      mutate(pr_treated = boot::inv.logit(u_i)) %>% \n      ungroup() %>%  # This undoes the rowwise \n      # Treatment indicator\n      mutate(d_i = rbinom(N, size = 1, prob = pr_treated)) %>% \n      ungroup()\n\n    crossing(unit_id = i_$unit_id,t = t_$t) %>%\n      left_join(i_,\"unit_id\") %>%\n      left_join(t_,\"t\") %>%\n      mutate(d_i = ifelse(t<tx_time,0,d_i)) %>%\n      mutate(y_i = beta_0 + beta_1 * x_i + tau * d_i + u_i + gamma_t + rnorm(N, mean = 0, sd = 1))\n  })\n}\n\nparams_panel %>% \n  dgp_panel()\n", 
         opts = list(label = "\"dgp_panel_setup\"", echo = "TRUE", 
             exercise = "TRUE", exercise.lines = "45L"), engine = "r"), 
@@ -2544,7 +2612,7 @@ learnr:::store_exercise_cache(structure(list(label = "demean3", global_setup = s
 "  d <- density(x)", "  p_df <- as_tibble(cbind(x = d$x, density = d$y))", 
 "  p_df %>%", "    ggplot(aes(x = x, y = density)) + geom_line() +", 
 "    #hrbrthemes::theme_ipsum() +", "    labs(x = \"Estimate\", y = \"Density\") +", 
-"    geom_vline(aes(xintercept = truth)) +", "    annotate(\"text\",x = mean(x), y = min(d$y*1.2), vjust=-1,label  = glue::glue(\"  \\tMean: {formatC(mean(x),digits = 3, format='f')}\\n   SD: {formatC(sd(x),digits = 3, format = 'f')}\"), hjust = 0)", 
+"    geom_vline(aes(xintercept = truth)) +", "    annotate(\"text\",x = mean(x), y = min(d$y*1.2), vjust=-1,label  = glue::glue(\"  \\tMean: {formatC(mean(x),digits = 3, format='f')}\\n   SD: {formatC(sd(x),digits = 3, format = 'f')}\\n   Truth: {truth}\"), hjust = 0)", 
 "}", "", "plot_cis <- function(x, K, truth) {", "  res <- x %>% bind_rows(.id = \"m\") %>%", 
 "    as_tibble() %>%", "    mutate(m = factor(m)) %>%", "    mutate(m = fct_reorder(m,estimate, .desc = TRUE)) %>%", 
 "    mutate(truth = truth) %>%", "    rowwise() %>%", "    mutate(covered = as.integer(between(truth,conf.low,conf.high))) %>%", 
@@ -2555,8 +2623,8 @@ learnr:::store_exercise_cache(structure(list(label = "demean3", global_setup = s
 "    geom_vline(aes(xintercept = truth)) +", "    labs(title= glue(\"Confidence Intervals for {prettyNum(length(K),big.mark=',')} of {prettyNum(length(res$m),big.mark=',')} Estimates\"),", 
 "         y= \"Sampling Iteration\",x = \"Estimate\",", "         subtitle= glue(\"{formatC(100*mean(res$covered),digits = 1, format='f')}% of confidence intervals cover the truth\")) +", 
 "    scale_colour_manual(values = c(\"black\",\"red\")) +", "    theme(legend.position = \"none\")", 
-"}", "", "options(\"scipen\" = 100, \"digits\" = 5)", "", ""), chunk_opts = list(
-    label = "setup", include = FALSE)), setup = "params_panel <- list(\n  N = 1000,\n  T = 2,\n  tx_time = 2, \n  rho_t = 0.8,\n  beta_0 = 0.5,\n  beta_1 = 2,\n  tau = 0.5,\n  p_d = 0.5\n)\n\ndgp_panel <- function(params) {\n  with(params, {\n\n    # Time effects\n    t_ <-\n      data.frame(t = 1:T,\n                 gamma_t = arima.sim(n=T, list(ar = rho_t, order=c(1,0,0))) %>% as.vector())\n\n    # Individual measures and effects\n    i_ <-\n      data.frame(\n        unit_id = 1:N,\n        x_i = rnorm(N, mean = 0, sd = 1),\n        u_i = rnorm(N, mean = 0, sd = 1)) %>%\n      rowwise() %>% # This allows us to get each value's pr_treated in the line below. \n      mutate(pr_treated = boot::inv.logit(u_i)) %>% \n      ungroup() %>%  # This undoes the rowwise \n      # Treatment indicator\n      mutate(d_i = rbinom(N, size = 1, prob = pr_treated)) %>% \n      ungroup()\n\n    crossing(unit_id = i_$unit_id,t = t_$t) %>%\n      left_join(i_,\"unit_id\") %>%\n      left_join(t_,\"t\") %>%\n      mutate(d_i = ifelse(t<tx_time,0,d_i)) %>%\n      mutate(y_i = beta_0 + beta_1 * x_i + tau * d_i + u_i + gamma_t + rnorm(N, mean = 0, sd = 1))\n  })\n}\n\nparams_panel %>% \n  dgp_panel()\n\ndemean_data <- function(df) {\n  df_ <- \n    df %>% \n      mutate(\n            # Step 1: Add in the global mean.\n            y_dm = y_i + mean(y_i),\n            d_dm = d_i + mean(d_i)) %>% \n            # Step 2: Subtract out the time-period means\n            group_by(t) %>% \n            mutate(y_dm = y_dm - mean(y_dm),\n            d_dm = d_dm - mean(d_i)) %>% \n            # Step 3: Subtract out the unit-level means. \n            group_by(unit_id) %>% \n            mutate(y_dm = y_dm - mean(y_dm),\n            d_dm = d_dm - mean(d_dm)) %>% \n            ungroup()\n\n  return(df_)\n}\n\nparams_panel %>% \n  dgp_panel() %>% \n    demean_data() \nestimator_fn_dm <- function(df) {\n  lm(y_dm ~ d_dm   , data = df)\n}\n\nset.seed(123)\nparams_panel %>% \n  dgp_panel() %>% \n    demean_data() %>% \n      estimator_fn_dm()", 
+"}", "", "options(\"scipen\" = 100, \"digits\" = 5)", "", "#knitr::purl(here(\"Panel Data Methods I/Panel Data Methods I.Rmd\"))"
+), chunk_opts = list(label = "setup", include = FALSE)), setup = "params_panel <- list(\n  N = 1000,\n  T = 2,\n  tx_time = 2, \n  rho_t = 0.8,\n  beta_0 = 0.5,\n  beta_1 = 2,\n  tau = 0.5,\n  p_d = 0.5\n)\n\ndgp_panel <- function(params) {\n  with(params, {\n\n    # Time effects\n    t_ <-\n      data.frame(t = 1:T,\n                 gamma_t = arima.sim(n=T, list(ar = rho_t, order=c(1,0,0))) %>% as.vector())\n\n    # Individual measures and effects\n    i_ <-\n      data.frame(\n        unit_id = 1:N,\n        x_i = rnorm(N, mean = 0, sd = 1),\n        u_i = rnorm(N, mean = 0, sd = 1)) %>%\n      rowwise() %>% # This allows us to get each value's pr_treated in the line below. \n      mutate(pr_treated = boot::inv.logit(u_i)) %>% \n      ungroup() %>%  # This undoes the rowwise \n      # Treatment indicator\n      mutate(d_i = rbinom(N, size = 1, prob = pr_treated)) %>% \n      ungroup()\n\n    crossing(unit_id = i_$unit_id,t = t_$t) %>%\n      left_join(i_,\"unit_id\") %>%\n      left_join(t_,\"t\") %>%\n      mutate(d_i = ifelse(t<tx_time,0,d_i)) %>%\n      mutate(y_i = beta_0 + beta_1 * x_i + tau * d_i + u_i + gamma_t + rnorm(N, mean = 0, sd = 1))\n  })\n}\n\nparams_panel %>% \n  dgp_panel()\n\ndemean_data <- function(df) {\n  df_ <- \n    df %>% \n      mutate(\n            # Step 1: Add in the global mean.\n            y_dm = y_i + mean(y_i),\n            d_dm = d_i + mean(d_i)) %>% \n            # Step 2: Subtract out the time-period means\n            group_by(t) %>% \n            mutate(y_dm = y_dm - mean(y_dm),\n            d_dm = d_dm - mean(d_i)) %>% \n            # Step 3: Subtract out the unit-level means. \n            group_by(unit_id) %>% \n            mutate(y_dm = y_dm - mean(y_dm),\n            d_dm = d_dm - mean(d_dm)) %>% \n            ungroup()\n\n  return(df_)\n}\n\nparams_panel %>% \n  dgp_panel() %>% \n    demean_data() \nestimator_fn_dm <- function(df) {\n  lm(y_dm ~ d_dm   , data = df)\n}\n\nset.seed(123)\nparams_panel %>% \n  dgp_panel() %>% \n    demean_data() %>% \n      estimator_fn_dm()", 
     chunks = list(list(label = "dgp_panel_setup", code = "params_panel <- list(\n  N = 1000,\n  T = 2,\n  tx_time = 2, \n  rho_t = 0.8,\n  beta_0 = 0.5,\n  beta_1 = 2,\n  tau = 0.5,\n  p_d = 0.5\n)\n\ndgp_panel <- function(params) {\n  with(params, {\n\n    # Time effects\n    t_ <-\n      data.frame(t = 1:T,\n                 gamma_t = arima.sim(n=T, list(ar = rho_t, order=c(1,0,0))) %>% as.vector())\n\n    # Individual measures and effects\n    i_ <-\n      data.frame(\n        unit_id = 1:N,\n        x_i = rnorm(N, mean = 0, sd = 1),\n        u_i = rnorm(N, mean = 0, sd = 1)) %>%\n      rowwise() %>% # This allows us to get each value's pr_treated in the line below. \n      mutate(pr_treated = boot::inv.logit(u_i)) %>% \n      ungroup() %>%  # This undoes the rowwise \n      # Treatment indicator\n      mutate(d_i = rbinom(N, size = 1, prob = pr_treated)) %>% \n      ungroup()\n\n    crossing(unit_id = i_$unit_id,t = t_$t) %>%\n      left_join(i_,\"unit_id\") %>%\n      left_join(t_,\"t\") %>%\n      mutate(d_i = ifelse(t<tx_time,0,d_i)) %>%\n      mutate(y_i = beta_0 + beta_1 * x_i + tau * d_i + u_i + gamma_t + rnorm(N, mean = 0, sd = 1))\n  })\n}\n\nparams_panel %>% \n  dgp_panel()\n", 
         opts = list(label = "\"dgp_panel_setup\"", echo = "TRUE", 
             exercise = "TRUE", exercise.lines = "45L"), engine = "r"), 
@@ -2625,7 +2693,7 @@ learnr:::store_exercise_cache(structure(list(label = "demean4", global_setup = s
 "  d <- density(x)", "  p_df <- as_tibble(cbind(x = d$x, density = d$y))", 
 "  p_df %>%", "    ggplot(aes(x = x, y = density)) + geom_line() +", 
 "    #hrbrthemes::theme_ipsum() +", "    labs(x = \"Estimate\", y = \"Density\") +", 
-"    geom_vline(aes(xintercept = truth)) +", "    annotate(\"text\",x = mean(x), y = min(d$y*1.2), vjust=-1,label  = glue::glue(\"  \\tMean: {formatC(mean(x),digits = 3, format='f')}\\n   SD: {formatC(sd(x),digits = 3, format = 'f')}\"), hjust = 0)", 
+"    geom_vline(aes(xintercept = truth)) +", "    annotate(\"text\",x = mean(x), y = min(d$y*1.2), vjust=-1,label  = glue::glue(\"  \\tMean: {formatC(mean(x),digits = 3, format='f')}\\n   SD: {formatC(sd(x),digits = 3, format = 'f')}\\n   Truth: {truth}\"), hjust = 0)", 
 "}", "", "plot_cis <- function(x, K, truth) {", "  res <- x %>% bind_rows(.id = \"m\") %>%", 
 "    as_tibble() %>%", "    mutate(m = factor(m)) %>%", "    mutate(m = fct_reorder(m,estimate, .desc = TRUE)) %>%", 
 "    mutate(truth = truth) %>%", "    rowwise() %>%", "    mutate(covered = as.integer(between(truth,conf.low,conf.high))) %>%", 
@@ -2636,8 +2704,8 @@ learnr:::store_exercise_cache(structure(list(label = "demean4", global_setup = s
 "    geom_vline(aes(xintercept = truth)) +", "    labs(title= glue(\"Confidence Intervals for {prettyNum(length(K),big.mark=',')} of {prettyNum(length(res$m),big.mark=',')} Estimates\"),", 
 "         y= \"Sampling Iteration\",x = \"Estimate\",", "         subtitle= glue(\"{formatC(100*mean(res$covered),digits = 1, format='f')}% of confidence intervals cover the truth\")) +", 
 "    scale_colour_manual(values = c(\"black\",\"red\")) +", "    theme(legend.position = \"none\")", 
-"}", "", "options(\"scipen\" = 100, \"digits\" = 5)", "", ""), chunk_opts = list(
-    label = "setup", include = FALSE)), setup = "params_panel <- list(\n  N = 1000,\n  T = 2,\n  tx_time = 2, \n  rho_t = 0.8,\n  beta_0 = 0.5,\n  beta_1 = 2,\n  tau = 0.5,\n  p_d = 0.5\n)\n\ndgp_panel <- function(params) {\n  with(params, {\n\n    # Time effects\n    t_ <-\n      data.frame(t = 1:T,\n                 gamma_t = arima.sim(n=T, list(ar = rho_t, order=c(1,0,0))) %>% as.vector())\n\n    # Individual measures and effects\n    i_ <-\n      data.frame(\n        unit_id = 1:N,\n        x_i = rnorm(N, mean = 0, sd = 1),\n        u_i = rnorm(N, mean = 0, sd = 1)) %>%\n      rowwise() %>% # This allows us to get each value's pr_treated in the line below. \n      mutate(pr_treated = boot::inv.logit(u_i)) %>% \n      ungroup() %>%  # This undoes the rowwise \n      # Treatment indicator\n      mutate(d_i = rbinom(N, size = 1, prob = pr_treated)) %>% \n      ungroup()\n\n    crossing(unit_id = i_$unit_id,t = t_$t) %>%\n      left_join(i_,\"unit_id\") %>%\n      left_join(t_,\"t\") %>%\n      mutate(d_i = ifelse(t<tx_time,0,d_i)) %>%\n      mutate(y_i = beta_0 + beta_1 * x_i + tau * d_i + u_i + gamma_t + rnorm(N, mean = 0, sd = 1))\n  })\n}\n\nparams_panel %>% \n  dgp_panel()\n\ndemean_data <- function(df) {\n  df_ <- \n    df %>% \n      mutate(\n            # Step 1: Add in the global mean.\n            y_dm = y_i + mean(y_i),\n            d_dm = d_i + mean(d_i)) %>% \n            # Step 2: Subtract out the time-period means\n            group_by(t) %>% \n            mutate(y_dm = y_dm - mean(y_dm),\n            d_dm = d_dm - mean(d_i)) %>% \n            # Step 3: Subtract out the unit-level means. \n            group_by(unit_id) %>% \n            mutate(y_dm = y_dm - mean(y_dm),\n            d_dm = d_dm - mean(d_dm)) %>% \n            ungroup()\n\n  return(df_)\n}\n\nparams_panel %>% \n  dgp_panel() %>% \n    demean_data() \nestimator_fn_dm <- function(df) {\n  lm(y_dm ~ d_dm   , data = df)\n}\n\nset.seed(123)\nparams_panel %>% \n  dgp_panel() %>% \n    demean_data() %>% \n      estimator_fn_dm()\nestimator_fn_dm2 <- function(df) {\n  feglm(y_i ~  d_i | t + unit_id, df, family = \"gaussian\")\n}\n\nset.seed(123)\nparams_panel %>% \n  dgp_panel() %>% \n    demean_data() %>% \n      estimator_fn_dm2()", 
+"}", "", "options(\"scipen\" = 100, \"digits\" = 5)", "", "#knitr::purl(here(\"Panel Data Methods I/Panel Data Methods I.Rmd\"))"
+), chunk_opts = list(label = "setup", include = FALSE)), setup = "params_panel <- list(\n  N = 1000,\n  T = 2,\n  tx_time = 2, \n  rho_t = 0.8,\n  beta_0 = 0.5,\n  beta_1 = 2,\n  tau = 0.5,\n  p_d = 0.5\n)\n\ndgp_panel <- function(params) {\n  with(params, {\n\n    # Time effects\n    t_ <-\n      data.frame(t = 1:T,\n                 gamma_t = arima.sim(n=T, list(ar = rho_t, order=c(1,0,0))) %>% as.vector())\n\n    # Individual measures and effects\n    i_ <-\n      data.frame(\n        unit_id = 1:N,\n        x_i = rnorm(N, mean = 0, sd = 1),\n        u_i = rnorm(N, mean = 0, sd = 1)) %>%\n      rowwise() %>% # This allows us to get each value's pr_treated in the line below. \n      mutate(pr_treated = boot::inv.logit(u_i)) %>% \n      ungroup() %>%  # This undoes the rowwise \n      # Treatment indicator\n      mutate(d_i = rbinom(N, size = 1, prob = pr_treated)) %>% \n      ungroup()\n\n    crossing(unit_id = i_$unit_id,t = t_$t) %>%\n      left_join(i_,\"unit_id\") %>%\n      left_join(t_,\"t\") %>%\n      mutate(d_i = ifelse(t<tx_time,0,d_i)) %>%\n      mutate(y_i = beta_0 + beta_1 * x_i + tau * d_i + u_i + gamma_t + rnorm(N, mean = 0, sd = 1))\n  })\n}\n\nparams_panel %>% \n  dgp_panel()\n\ndemean_data <- function(df) {\n  df_ <- \n    df %>% \n      mutate(\n            # Step 1: Add in the global mean.\n            y_dm = y_i + mean(y_i),\n            d_dm = d_i + mean(d_i)) %>% \n            # Step 2: Subtract out the time-period means\n            group_by(t) %>% \n            mutate(y_dm = y_dm - mean(y_dm),\n            d_dm = d_dm - mean(d_i)) %>% \n            # Step 3: Subtract out the unit-level means. \n            group_by(unit_id) %>% \n            mutate(y_dm = y_dm - mean(y_dm),\n            d_dm = d_dm - mean(d_dm)) %>% \n            ungroup()\n\n  return(df_)\n}\n\nparams_panel %>% \n  dgp_panel() %>% \n    demean_data() \nestimator_fn_dm <- function(df) {\n  lm(y_dm ~ d_dm   , data = df)\n}\n\nset.seed(123)\nparams_panel %>% \n  dgp_panel() %>% \n    demean_data() %>% \n      estimator_fn_dm()\nestimator_fn_dm2 <- function(df) {\n  feglm(y_i ~  d_i | t + unit_id, df, family = \"gaussian\")\n}\n\nset.seed(123)\nparams_panel %>% \n  dgp_panel() %>% \n    demean_data() %>% \n      estimator_fn_dm2()", 
     chunks = list(list(label = "dgp_panel_setup", code = "params_panel <- list(\n  N = 1000,\n  T = 2,\n  tx_time = 2, \n  rho_t = 0.8,\n  beta_0 = 0.5,\n  beta_1 = 2,\n  tau = 0.5,\n  p_d = 0.5\n)\n\ndgp_panel <- function(params) {\n  with(params, {\n\n    # Time effects\n    t_ <-\n      data.frame(t = 1:T,\n                 gamma_t = arima.sim(n=T, list(ar = rho_t, order=c(1,0,0))) %>% as.vector())\n\n    # Individual measures and effects\n    i_ <-\n      data.frame(\n        unit_id = 1:N,\n        x_i = rnorm(N, mean = 0, sd = 1),\n        u_i = rnorm(N, mean = 0, sd = 1)) %>%\n      rowwise() %>% # This allows us to get each value's pr_treated in the line below. \n      mutate(pr_treated = boot::inv.logit(u_i)) %>% \n      ungroup() %>%  # This undoes the rowwise \n      # Treatment indicator\n      mutate(d_i = rbinom(N, size = 1, prob = pr_treated)) %>% \n      ungroup()\n\n    crossing(unit_id = i_$unit_id,t = t_$t) %>%\n      left_join(i_,\"unit_id\") %>%\n      left_join(t_,\"t\") %>%\n      mutate(d_i = ifelse(t<tx_time,0,d_i)) %>%\n      mutate(y_i = beta_0 + beta_1 * x_i + tau * d_i + u_i + gamma_t + rnorm(N, mean = 0, sd = 1))\n  })\n}\n\nparams_panel %>% \n  dgp_panel()\n", 
         opts = list(label = "\"dgp_panel_setup\"", echo = "TRUE", 
             exercise = "TRUE", exercise.lines = "45L"), engine = "r"), 
@@ -2715,7 +2783,7 @@ learnr:::store_exercise_cache(structure(list(label = "cre1", global_setup = stru
 "  d <- density(x)", "  p_df <- as_tibble(cbind(x = d$x, density = d$y))", 
 "  p_df %>%", "    ggplot(aes(x = x, y = density)) + geom_line() +", 
 "    #hrbrthemes::theme_ipsum() +", "    labs(x = \"Estimate\", y = \"Density\") +", 
-"    geom_vline(aes(xintercept = truth)) +", "    annotate(\"text\",x = mean(x), y = min(d$y*1.2), vjust=-1,label  = glue::glue(\"  \\tMean: {formatC(mean(x),digits = 3, format='f')}\\n   SD: {formatC(sd(x),digits = 3, format = 'f')}\"), hjust = 0)", 
+"    geom_vline(aes(xintercept = truth)) +", "    annotate(\"text\",x = mean(x), y = min(d$y*1.2), vjust=-1,label  = glue::glue(\"  \\tMean: {formatC(mean(x),digits = 3, format='f')}\\n   SD: {formatC(sd(x),digits = 3, format = 'f')}\\n   Truth: {truth}\"), hjust = 0)", 
 "}", "", "plot_cis <- function(x, K, truth) {", "  res <- x %>% bind_rows(.id = \"m\") %>%", 
 "    as_tibble() %>%", "    mutate(m = factor(m)) %>%", "    mutate(m = fct_reorder(m,estimate, .desc = TRUE)) %>%", 
 "    mutate(truth = truth) %>%", "    rowwise() %>%", "    mutate(covered = as.integer(between(truth,conf.low,conf.high))) %>%", 
@@ -2726,8 +2794,8 @@ learnr:::store_exercise_cache(structure(list(label = "cre1", global_setup = stru
 "    geom_vline(aes(xintercept = truth)) +", "    labs(title= glue(\"Confidence Intervals for {prettyNum(length(K),big.mark=',')} of {prettyNum(length(res$m),big.mark=',')} Estimates\"),", 
 "         y= \"Sampling Iteration\",x = \"Estimate\",", "         subtitle= glue(\"{formatC(100*mean(res$covered),digits = 1, format='f')}% of confidence intervals cover the truth\")) +", 
 "    scale_colour_manual(values = c(\"black\",\"red\")) +", "    theme(legend.position = \"none\")", 
-"}", "", "options(\"scipen\" = 100, \"digits\" = 5)", "", ""), chunk_opts = list(
-    label = "setup", include = FALSE)), setup = "params_panel <- list(\n  N = 1000,\n  T = 2,\n  tx_time = 2, \n  rho_t = 0.8,\n  beta_0 = 0.5,\n  beta_1 = 2,\n  tau = 0.5,\n  p_d = 0.5\n)\n\ndgp_panel <- function(params) {\n  with(params, {\n\n    # Time effects\n    t_ <-\n      data.frame(t = 1:T,\n                 gamma_t = arima.sim(n=T, list(ar = rho_t, order=c(1,0,0))) %>% as.vector())\n\n    # Individual measures and effects\n    i_ <-\n      data.frame(\n        unit_id = 1:N,\n        x_i = rnorm(N, mean = 0, sd = 1),\n        u_i = rnorm(N, mean = 0, sd = 1)) %>%\n      rowwise() %>% # This allows us to get each value's pr_treated in the line below. \n      mutate(pr_treated = boot::inv.logit(u_i)) %>% \n      ungroup() %>%  # This undoes the rowwise \n      # Treatment indicator\n      mutate(d_i = rbinom(N, size = 1, prob = pr_treated)) %>% \n      ungroup()\n\n    crossing(unit_id = i_$unit_id,t = t_$t) %>%\n      left_join(i_,\"unit_id\") %>%\n      left_join(t_,\"t\") %>%\n      mutate(d_i = ifelse(t<tx_time,0,d_i)) %>%\n      mutate(y_i = beta_0 + beta_1 * x_i + tau * d_i + u_i + gamma_t + rnorm(N, mean = 0, sd = 1))\n  })\n}\n\nparams_panel %>% \n  dgp_panel()\n", 
+"}", "", "options(\"scipen\" = 100, \"digits\" = 5)", "", "#knitr::purl(here(\"Panel Data Methods I/Panel Data Methods I.Rmd\"))"
+), chunk_opts = list(label = "setup", include = FALSE)), setup = "params_panel <- list(\n  N = 1000,\n  T = 2,\n  tx_time = 2, \n  rho_t = 0.8,\n  beta_0 = 0.5,\n  beta_1 = 2,\n  tau = 0.5,\n  p_d = 0.5\n)\n\ndgp_panel <- function(params) {\n  with(params, {\n\n    # Time effects\n    t_ <-\n      data.frame(t = 1:T,\n                 gamma_t = arima.sim(n=T, list(ar = rho_t, order=c(1,0,0))) %>% as.vector())\n\n    # Individual measures and effects\n    i_ <-\n      data.frame(\n        unit_id = 1:N,\n        x_i = rnorm(N, mean = 0, sd = 1),\n        u_i = rnorm(N, mean = 0, sd = 1)) %>%\n      rowwise() %>% # This allows us to get each value's pr_treated in the line below. \n      mutate(pr_treated = boot::inv.logit(u_i)) %>% \n      ungroup() %>%  # This undoes the rowwise \n      # Treatment indicator\n      mutate(d_i = rbinom(N, size = 1, prob = pr_treated)) %>% \n      ungroup()\n\n    crossing(unit_id = i_$unit_id,t = t_$t) %>%\n      left_join(i_,\"unit_id\") %>%\n      left_join(t_,\"t\") %>%\n      mutate(d_i = ifelse(t<tx_time,0,d_i)) %>%\n      mutate(y_i = beta_0 + beta_1 * x_i + tau * d_i + u_i + gamma_t + rnorm(N, mean = 0, sd = 1))\n  })\n}\n\nparams_panel %>% \n  dgp_panel()\n", 
     chunks = list(list(label = "dgp_panel_setup", code = "params_panel <- list(\n  N = 1000,\n  T = 2,\n  tx_time = 2, \n  rho_t = 0.8,\n  beta_0 = 0.5,\n  beta_1 = 2,\n  tau = 0.5,\n  p_d = 0.5\n)\n\ndgp_panel <- function(params) {\n  with(params, {\n\n    # Time effects\n    t_ <-\n      data.frame(t = 1:T,\n                 gamma_t = arima.sim(n=T, list(ar = rho_t, order=c(1,0,0))) %>% as.vector())\n\n    # Individual measures and effects\n    i_ <-\n      data.frame(\n        unit_id = 1:N,\n        x_i = rnorm(N, mean = 0, sd = 1),\n        u_i = rnorm(N, mean = 0, sd = 1)) %>%\n      rowwise() %>% # This allows us to get each value's pr_treated in the line below. \n      mutate(pr_treated = boot::inv.logit(u_i)) %>% \n      ungroup() %>%  # This undoes the rowwise \n      # Treatment indicator\n      mutate(d_i = rbinom(N, size = 1, prob = pr_treated)) %>% \n      ungroup()\n\n    crossing(unit_id = i_$unit_id,t = t_$t) %>%\n      left_join(i_,\"unit_id\") %>%\n      left_join(t_,\"t\") %>%\n      mutate(d_i = ifelse(t<tx_time,0,d_i)) %>%\n      mutate(y_i = beta_0 + beta_1 * x_i + tau * d_i + u_i + gamma_t + rnorm(N, mean = 0, sd = 1))\n  })\n}\n\nparams_panel %>% \n  dgp_panel()\n", 
         opts = list(label = "\"dgp_panel_setup\"", echo = "TRUE", 
             exercise = "TRUE", exercise.lines = "45L"), engine = "r"), 
@@ -2794,7 +2862,7 @@ learnr:::store_exercise_cache(structure(list(label = "cre2", global_setup = stru
 "  d <- density(x)", "  p_df <- as_tibble(cbind(x = d$x, density = d$y))", 
 "  p_df %>%", "    ggplot(aes(x = x, y = density)) + geom_line() +", 
 "    #hrbrthemes::theme_ipsum() +", "    labs(x = \"Estimate\", y = \"Density\") +", 
-"    geom_vline(aes(xintercept = truth)) +", "    annotate(\"text\",x = mean(x), y = min(d$y*1.2), vjust=-1,label  = glue::glue(\"  \\tMean: {formatC(mean(x),digits = 3, format='f')}\\n   SD: {formatC(sd(x),digits = 3, format = 'f')}\"), hjust = 0)", 
+"    geom_vline(aes(xintercept = truth)) +", "    annotate(\"text\",x = mean(x), y = min(d$y*1.2), vjust=-1,label  = glue::glue(\"  \\tMean: {formatC(mean(x),digits = 3, format='f')}\\n   SD: {formatC(sd(x),digits = 3, format = 'f')}\\n   Truth: {truth}\"), hjust = 0)", 
 "}", "", "plot_cis <- function(x, K, truth) {", "  res <- x %>% bind_rows(.id = \"m\") %>%", 
 "    as_tibble() %>%", "    mutate(m = factor(m)) %>%", "    mutate(m = fct_reorder(m,estimate, .desc = TRUE)) %>%", 
 "    mutate(truth = truth) %>%", "    rowwise() %>%", "    mutate(covered = as.integer(between(truth,conf.low,conf.high))) %>%", 
@@ -2805,8 +2873,8 @@ learnr:::store_exercise_cache(structure(list(label = "cre2", global_setup = stru
 "    geom_vline(aes(xintercept = truth)) +", "    labs(title= glue(\"Confidence Intervals for {prettyNum(length(K),big.mark=',')} of {prettyNum(length(res$m),big.mark=',')} Estimates\"),", 
 "         y= \"Sampling Iteration\",x = \"Estimate\",", "         subtitle= glue(\"{formatC(100*mean(res$covered),digits = 1, format='f')}% of confidence intervals cover the truth\")) +", 
 "    scale_colour_manual(values = c(\"black\",\"red\")) +", "    theme(legend.position = \"none\")", 
-"}", "", "options(\"scipen\" = 100, \"digits\" = 5)", "", ""), chunk_opts = list(
-    label = "setup", include = FALSE)), setup = "params_panel <- list(\n  N = 1000,\n  T = 2,\n  tx_time = 2, \n  rho_t = 0.8,\n  beta_0 = 0.5,\n  beta_1 = 2,\n  tau = 0.5,\n  p_d = 0.5\n)\n\ndgp_panel <- function(params) {\n  with(params, {\n\n    # Time effects\n    t_ <-\n      data.frame(t = 1:T,\n                 gamma_t = arima.sim(n=T, list(ar = rho_t, order=c(1,0,0))) %>% as.vector())\n\n    # Individual measures and effects\n    i_ <-\n      data.frame(\n        unit_id = 1:N,\n        x_i = rnorm(N, mean = 0, sd = 1),\n        u_i = rnorm(N, mean = 0, sd = 1)) %>%\n      rowwise() %>% # This allows us to get each value's pr_treated in the line below. \n      mutate(pr_treated = boot::inv.logit(u_i)) %>% \n      ungroup() %>%  # This undoes the rowwise \n      # Treatment indicator\n      mutate(d_i = rbinom(N, size = 1, prob = pr_treated)) %>% \n      ungroup()\n\n    crossing(unit_id = i_$unit_id,t = t_$t) %>%\n      left_join(i_,\"unit_id\") %>%\n      left_join(t_,\"t\") %>%\n      mutate(d_i = ifelse(t<tx_time,0,d_i)) %>%\n      mutate(y_i = beta_0 + beta_1 * x_i + tau * d_i + u_i + gamma_t + rnorm(N, mean = 0, sd = 1))\n  })\n}\n\nparams_panel %>% \n  dgp_panel()\n\nprepare_cre <- function(df) {\n  df %>% \n    group_by(t) %>%\n    mutate(d_bar_t = mean(d_i),\n           x_bar_t = mean(x_i)) %>%\n    group_by(unit_id) %>%\n    mutate(d_bar_i = mean(d_i),\n           x_bar_i = mean(x_i))\n}\n\nestimator_fn_cre <- function(df) {\n  suppressWarnings({suppressMessages({\n    lmer(y_i ~ d_i + d_bar_t + d_bar_i + (1|t) + (1|unit_id), df)\n  })})\n}\n\nset.seed(123)\nparams_panel %>% \n  dgp_panel()  %>% \n    prepare_cre() %>% \n      estimator_fn_cre()\n", 
+"}", "", "options(\"scipen\" = 100, \"digits\" = 5)", "", "#knitr::purl(here(\"Panel Data Methods I/Panel Data Methods I.Rmd\"))"
+), chunk_opts = list(label = "setup", include = FALSE)), setup = "params_panel <- list(\n  N = 1000,\n  T = 2,\n  tx_time = 2, \n  rho_t = 0.8,\n  beta_0 = 0.5,\n  beta_1 = 2,\n  tau = 0.5,\n  p_d = 0.5\n)\n\ndgp_panel <- function(params) {\n  with(params, {\n\n    # Time effects\n    t_ <-\n      data.frame(t = 1:T,\n                 gamma_t = arima.sim(n=T, list(ar = rho_t, order=c(1,0,0))) %>% as.vector())\n\n    # Individual measures and effects\n    i_ <-\n      data.frame(\n        unit_id = 1:N,\n        x_i = rnorm(N, mean = 0, sd = 1),\n        u_i = rnorm(N, mean = 0, sd = 1)) %>%\n      rowwise() %>% # This allows us to get each value's pr_treated in the line below. \n      mutate(pr_treated = boot::inv.logit(u_i)) %>% \n      ungroup() %>%  # This undoes the rowwise \n      # Treatment indicator\n      mutate(d_i = rbinom(N, size = 1, prob = pr_treated)) %>% \n      ungroup()\n\n    crossing(unit_id = i_$unit_id,t = t_$t) %>%\n      left_join(i_,\"unit_id\") %>%\n      left_join(t_,\"t\") %>%\n      mutate(d_i = ifelse(t<tx_time,0,d_i)) %>%\n      mutate(y_i = beta_0 + beta_1 * x_i + tau * d_i + u_i + gamma_t + rnorm(N, mean = 0, sd = 1))\n  })\n}\n\nparams_panel %>% \n  dgp_panel()\n\nprepare_cre <- function(df) {\n  df %>% \n    group_by(t) %>%\n    mutate(d_bar_t = mean(d_i),\n           x_bar_t = mean(x_i)) %>%\n    group_by(unit_id) %>%\n    mutate(d_bar_i = mean(d_i),\n           x_bar_i = mean(x_i))\n}\n\nestimator_fn_cre <- function(df) {\n  suppressWarnings({suppressMessages({\n    lmer(y_i ~ d_i + d_bar_t + d_bar_i + (1|t) + (1|unit_id), df)\n  })})\n}\n\nset.seed(123)\nparams_panel %>% \n  dgp_panel()  %>% \n    prepare_cre() %>% \n      estimator_fn_cre()\n", 
     chunks = list(list(label = "dgp_panel_setup", code = "params_panel <- list(\n  N = 1000,\n  T = 2,\n  tx_time = 2, \n  rho_t = 0.8,\n  beta_0 = 0.5,\n  beta_1 = 2,\n  tau = 0.5,\n  p_d = 0.5\n)\n\ndgp_panel <- function(params) {\n  with(params, {\n\n    # Time effects\n    t_ <-\n      data.frame(t = 1:T,\n                 gamma_t = arima.sim(n=T, list(ar = rho_t, order=c(1,0,0))) %>% as.vector())\n\n    # Individual measures and effects\n    i_ <-\n      data.frame(\n        unit_id = 1:N,\n        x_i = rnorm(N, mean = 0, sd = 1),\n        u_i = rnorm(N, mean = 0, sd = 1)) %>%\n      rowwise() %>% # This allows us to get each value's pr_treated in the line below. \n      mutate(pr_treated = boot::inv.logit(u_i)) %>% \n      ungroup() %>%  # This undoes the rowwise \n      # Treatment indicator\n      mutate(d_i = rbinom(N, size = 1, prob = pr_treated)) %>% \n      ungroup()\n\n    crossing(unit_id = i_$unit_id,t = t_$t) %>%\n      left_join(i_,\"unit_id\") %>%\n      left_join(t_,\"t\") %>%\n      mutate(d_i = ifelse(t<tx_time,0,d_i)) %>%\n      mutate(y_i = beta_0 + beta_1 * x_i + tau * d_i + u_i + gamma_t + rnorm(N, mean = 0, sd = 1))\n  })\n}\n\nparams_panel %>% \n  dgp_panel()\n", 
         opts = list(label = "\"dgp_panel_setup\"", echo = "TRUE", 
             exercise = "TRUE", exercise.lines = "45L"), engine = "r"), 
@@ -2872,7 +2940,7 @@ learnr:::store_exercise_cache(structure(list(label = "cre3", global_setup = stru
 "  d <- density(x)", "  p_df <- as_tibble(cbind(x = d$x, density = d$y))", 
 "  p_df %>%", "    ggplot(aes(x = x, y = density)) + geom_line() +", 
 "    #hrbrthemes::theme_ipsum() +", "    labs(x = \"Estimate\", y = \"Density\") +", 
-"    geom_vline(aes(xintercept = truth)) +", "    annotate(\"text\",x = mean(x), y = min(d$y*1.2), vjust=-1,label  = glue::glue(\"  \\tMean: {formatC(mean(x),digits = 3, format='f')}\\n   SD: {formatC(sd(x),digits = 3, format = 'f')}\"), hjust = 0)", 
+"    geom_vline(aes(xintercept = truth)) +", "    annotate(\"text\",x = mean(x), y = min(d$y*1.2), vjust=-1,label  = glue::glue(\"  \\tMean: {formatC(mean(x),digits = 3, format='f')}\\n   SD: {formatC(sd(x),digits = 3, format = 'f')}\\n   Truth: {truth}\"), hjust = 0)", 
 "}", "", "plot_cis <- function(x, K, truth) {", "  res <- x %>% bind_rows(.id = \"m\") %>%", 
 "    as_tibble() %>%", "    mutate(m = factor(m)) %>%", "    mutate(m = fct_reorder(m,estimate, .desc = TRUE)) %>%", 
 "    mutate(truth = truth) %>%", "    rowwise() %>%", "    mutate(covered = as.integer(between(truth,conf.low,conf.high))) %>%", 
@@ -2883,8 +2951,8 @@ learnr:::store_exercise_cache(structure(list(label = "cre3", global_setup = stru
 "    geom_vline(aes(xintercept = truth)) +", "    labs(title= glue(\"Confidence Intervals for {prettyNum(length(K),big.mark=',')} of {prettyNum(length(res$m),big.mark=',')} Estimates\"),", 
 "         y= \"Sampling Iteration\",x = \"Estimate\",", "         subtitle= glue(\"{formatC(100*mean(res$covered),digits = 1, format='f')}% of confidence intervals cover the truth\")) +", 
 "    scale_colour_manual(values = c(\"black\",\"red\")) +", "    theme(legend.position = \"none\")", 
-"}", "", "options(\"scipen\" = 100, \"digits\" = 5)", "", ""), chunk_opts = list(
-    label = "setup", include = FALSE)), setup = "params_panel <- list(\n  N = 1000,\n  T = 2,\n  tx_time = 2, \n  rho_t = 0.8,\n  beta_0 = 0.5,\n  beta_1 = 2,\n  tau = 0.5,\n  p_d = 0.5\n)\n\ndgp_panel <- function(params) {\n  with(params, {\n\n    # Time effects\n    t_ <-\n      data.frame(t = 1:T,\n                 gamma_t = arima.sim(n=T, list(ar = rho_t, order=c(1,0,0))) %>% as.vector())\n\n    # Individual measures and effects\n    i_ <-\n      data.frame(\n        unit_id = 1:N,\n        x_i = rnorm(N, mean = 0, sd = 1),\n        u_i = rnorm(N, mean = 0, sd = 1)) %>%\n      rowwise() %>% # This allows us to get each value's pr_treated in the line below. \n      mutate(pr_treated = boot::inv.logit(u_i)) %>% \n      ungroup() %>%  # This undoes the rowwise \n      # Treatment indicator\n      mutate(d_i = rbinom(N, size = 1, prob = pr_treated)) %>% \n      ungroup()\n\n    crossing(unit_id = i_$unit_id,t = t_$t) %>%\n      left_join(i_,\"unit_id\") %>%\n      left_join(t_,\"t\") %>%\n      mutate(d_i = ifelse(t<tx_time,0,d_i)) %>%\n      mutate(y_i = beta_0 + beta_1 * x_i + tau * d_i + u_i + gamma_t + rnorm(N, mean = 0, sd = 1))\n  })\n}\n\nparams_panel %>% \n  dgp_panel()\n\nprepare_cre <- function(df) {\n  df %>% \n    group_by(t) %>%\n    mutate(d_bar_t = mean(d_i),\n           x_bar_t = mean(x_i)) %>%\n    group_by(unit_id) %>%\n    mutate(d_bar_i = mean(d_i),\n           x_bar_i = mean(x_i))\n}\n\nestimator_fn_cre <- function(df) {\n  suppressWarnings({suppressMessages({\n    lmer(y_i ~ d_i + d_bar_t + d_bar_i + (1|t) + (1|unit_id), df)\n  })})\n}\n\nset.seed(123)\nparams_panel %>% \n  dgp_panel()  %>% \n    prepare_cre() %>% \n      estimator_fn_cre()\n\nestimator_fn_fe <- function(df) {\n  suppressWarnings({suppressMessages({\n    feglm(y_i ~  d_i | t + unit_id, df, family = \"gaussian\")\n  })})\n}\n\nset.seed(123)\nparams_panel %>% \n  dgp_panel()  %>% \n    prepare_cre() %>% \n      estimator_fn_fe()\n", 
+"}", "", "options(\"scipen\" = 100, \"digits\" = 5)", "", "#knitr::purl(here(\"Panel Data Methods I/Panel Data Methods I.Rmd\"))"
+), chunk_opts = list(label = "setup", include = FALSE)), setup = "params_panel <- list(\n  N = 1000,\n  T = 2,\n  tx_time = 2, \n  rho_t = 0.8,\n  beta_0 = 0.5,\n  beta_1 = 2,\n  tau = 0.5,\n  p_d = 0.5\n)\n\ndgp_panel <- function(params) {\n  with(params, {\n\n    # Time effects\n    t_ <-\n      data.frame(t = 1:T,\n                 gamma_t = arima.sim(n=T, list(ar = rho_t, order=c(1,0,0))) %>% as.vector())\n\n    # Individual measures and effects\n    i_ <-\n      data.frame(\n        unit_id = 1:N,\n        x_i = rnorm(N, mean = 0, sd = 1),\n        u_i = rnorm(N, mean = 0, sd = 1)) %>%\n      rowwise() %>% # This allows us to get each value's pr_treated in the line below. \n      mutate(pr_treated = boot::inv.logit(u_i)) %>% \n      ungroup() %>%  # This undoes the rowwise \n      # Treatment indicator\n      mutate(d_i = rbinom(N, size = 1, prob = pr_treated)) %>% \n      ungroup()\n\n    crossing(unit_id = i_$unit_id,t = t_$t) %>%\n      left_join(i_,\"unit_id\") %>%\n      left_join(t_,\"t\") %>%\n      mutate(d_i = ifelse(t<tx_time,0,d_i)) %>%\n      mutate(y_i = beta_0 + beta_1 * x_i + tau * d_i + u_i + gamma_t + rnorm(N, mean = 0, sd = 1))\n  })\n}\n\nparams_panel %>% \n  dgp_panel()\n\nprepare_cre <- function(df) {\n  df %>% \n    group_by(t) %>%\n    mutate(d_bar_t = mean(d_i),\n           x_bar_t = mean(x_i)) %>%\n    group_by(unit_id) %>%\n    mutate(d_bar_i = mean(d_i),\n           x_bar_i = mean(x_i))\n}\n\nestimator_fn_cre <- function(df) {\n  suppressWarnings({suppressMessages({\n    lmer(y_i ~ d_i + d_bar_t + d_bar_i + (1|t) + (1|unit_id), df)\n  })})\n}\n\nset.seed(123)\nparams_panel %>% \n  dgp_panel()  %>% \n    prepare_cre() %>% \n      estimator_fn_cre()\n\nestimator_fn_fe <- function(df) {\n  suppressWarnings({suppressMessages({\n    feglm(y_i ~  d_i | t + unit_id, df, family = \"gaussian\")\n  })})\n}\n\nset.seed(123)\nparams_panel %>% \n  dgp_panel()  %>% \n    prepare_cre() %>% \n      estimator_fn_fe()\n", 
     chunks = list(list(label = "dgp_panel_setup", code = "params_panel <- list(\n  N = 1000,\n  T = 2,\n  tx_time = 2, \n  rho_t = 0.8,\n  beta_0 = 0.5,\n  beta_1 = 2,\n  tau = 0.5,\n  p_d = 0.5\n)\n\ndgp_panel <- function(params) {\n  with(params, {\n\n    # Time effects\n    t_ <-\n      data.frame(t = 1:T,\n                 gamma_t = arima.sim(n=T, list(ar = rho_t, order=c(1,0,0))) %>% as.vector())\n\n    # Individual measures and effects\n    i_ <-\n      data.frame(\n        unit_id = 1:N,\n        x_i = rnorm(N, mean = 0, sd = 1),\n        u_i = rnorm(N, mean = 0, sd = 1)) %>%\n      rowwise() %>% # This allows us to get each value's pr_treated in the line below. \n      mutate(pr_treated = boot::inv.logit(u_i)) %>% \n      ungroup() %>%  # This undoes the rowwise \n      # Treatment indicator\n      mutate(d_i = rbinom(N, size = 1, prob = pr_treated)) %>% \n      ungroup()\n\n    crossing(unit_id = i_$unit_id,t = t_$t) %>%\n      left_join(i_,\"unit_id\") %>%\n      left_join(t_,\"t\") %>%\n      mutate(d_i = ifelse(t<tx_time,0,d_i)) %>%\n      mutate(y_i = beta_0 + beta_1 * x_i + tau * d_i + u_i + gamma_t + rnorm(N, mean = 0, sd = 1))\n  })\n}\n\nparams_panel %>% \n  dgp_panel()\n", 
         opts = list(label = "\"dgp_panel_setup\"", echo = "TRUE", 
             exercise = "TRUE", exercise.lines = "45L"), engine = "r"), 
