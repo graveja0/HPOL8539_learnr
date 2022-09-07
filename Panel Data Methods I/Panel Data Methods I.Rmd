@@ -101,6 +101,8 @@ options("scipen" = 100, "digits" = 5)
 
 ## Review and Motivation for Today's Session
 
+[Link back to main course website](https://graveja0.github.io/HPOL8539-F2022/)
+
 Our objective today is to extend our consideration of a data generation process (DGP) with unobserved heterogeneity. 
 
 Recall the basic DGP we introduced last week:
@@ -268,7 +270,7 @@ knitr::include_graphics("images/samp-dist-noUi.png")
 
 ## Exercise 1: Unobserved Heterogeneity
 
-Note that this exercise repeats Exercise 4 from last week's session. 
+Note that this exercise repeats Exercise 5 from last week's session. 
 
 We will next adapt the underlying DGP to include an unobserved heterogeneity term $U_i$:
 
